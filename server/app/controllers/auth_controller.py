@@ -53,8 +53,9 @@ def login(request: Request,
     
     security_logger.info(f"Successful login from IP: {client_ip} for user: {email}")
     
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
+   # Convert user.id to string for JWT spec compliance
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
     response.set_cookie(
         key="refresh_token",
@@ -89,9 +90,10 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
         payload = decode_access_token(refresh_token) 
         if payload is None:
              raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        user_id: int = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        user_id = int(user_id_str)  # Convert back to int
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
@@ -108,8 +110,8 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
             detail="Inactive user"
         )    
 
-    access_token = create_access_token(data={"sub": user.id})
-    refresh_token = create_refresh_token(data={"sub": user.id})
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
     response.set_cookie(
         key="refresh_token",
