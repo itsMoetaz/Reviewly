@@ -116,11 +116,11 @@ def fetch_pull_requests(
             "target_branch": pr["base"]["ref"],
             "created_at": pr["created_at"],
             "updated_at": pr["updated_at"],
-            "comments_count": pr["comments"],
-            "commits_count": pr["commits"],
-            "changed_files_count": pr["changed_files"],
-            "additions": pr.get("additions", 0),
-            "deletions": pr.get("deletions", 0)
+            "comments_count": pr.get("comments", 0),
+            "commits_count": pr.get("commits", None),
+            "changed_files_count": pr.get("changed_files", None),
+            "additions": pr.get("additions", None),
+            "deletions": pr.get("deletions", None)
         })
     
     security_logger.info(f"Fetched {len(pull_requests)} PRs from {owner}/{repo}")
