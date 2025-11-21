@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List, Union
+from typing import List, Union, Optional
 from app.core.dependencies import get_current_active_user, get_db, require_admin
 from app.models.user import User, UserRole
 from app.models.project import Project
 from app.schemas.project import (
-    ProjectCreateGitHub,
-    ProjectCreateGitLab,
+    ProjectCreateGitHub, ProjectListResponse,
+    ProjectCreateGitLab, ProjectResponseWithStats,
     ProjectUpdate,
     ProjectResponse,
     ProjectResponseWithoutTokens
@@ -45,16 +45,27 @@ def create_gitlab_project(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/", response_model=List[ProjectResponse], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=ProjectListResponse, status_code=status.HTTP_200_OK)
 def get_user_projects(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    platform: Optional[str] = Query(None, regex="^(github|gitlab|all)$"),
+    is_active: Optional[bool] = Query(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    projects = project_service.get_user_projects(db, current_user.id)
-    return projects
+    result = project_service.get_user_projects(
+        db=db,
+        user_id=current_user.id,
+        page=page,
+        per_page=per_page,
+        platform=platform,
+        is_active=is_active
+    )
+    return result
 
 
-@router.get("/{project_id}", response_model=ProjectResponse, status_code=status.HTTP_200_OK)
+@router.get("/{project_id}", response_model=ProjectResponseWithStats, status_code=status.HTTP_200_OK)
 def get_project(
     project_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -71,8 +82,13 @@ def get_project(
             detail="Project not found"
         )
     
+    stats = project_service.get_project_stats(project)
     
-    return project
+    project_dict = ProjectResponse.from_orm(project).model_dump()
+    project_dict['stats'] = stats
+    
+    return ProjectResponseWithStats(**project_dict)
+
 
 
 @router.put("/{project_id}", response_model=ProjectResponse, status_code=status.HTTP_200_OK)

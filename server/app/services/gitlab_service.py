@@ -2,6 +2,7 @@ from typing import List, Dict, Optional, Any
 import requests
 from fastapi import HTTPException, status
 from app.core.logging_config import security_logger
+from app.services.cache_service import cache_service
 
 
 class GitLabAPIError(Exception):
@@ -68,10 +69,14 @@ def _make_gitlab_request(
 
 
 def fetch_branches(token: str, project_id: str) -> List[Dict[str, Any]]:
+    cached = cache_service.get("gitlab:branches", project_id=project_id)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching branches from GitLab project {project_id}")
     endpoint = f"/projects/{project_id.replace('/', '%2F')}/repository/branches"
     branches_data = _make_gitlab_request(endpoint, token)
     
-    # Transform to our format
     branches = []
     for branch in branches_data:
         branches.append({
@@ -85,6 +90,7 @@ def fetch_branches(token: str, project_id: str) -> List[Dict[str, Any]]:
             "protected": branch.get("protected", False)
         })
     
+    cache_service.set("gitlab:branches", branches, ttl=300, project_id=project_id)
     security_logger.info(f"Fetched {len(branches)} branches from GitLab project {project_id}")
     return branches
 
@@ -96,6 +102,11 @@ def fetch_merge_requests(
     page: int = 1,
     per_page: int = 20
 ) -> Dict[str, Any]:
+    cached = cache_service.get("gitlab:mrs", project_id=project_id, state=state, page=page, per_page=per_page)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching MRs from GitLab project {project_id} (state={state})")
 
     endpoint = f"/projects/{project_id.replace('/', '%2F')}/merge_requests"
     params = {
@@ -126,12 +137,17 @@ def fetch_merge_requests(
     
     security_logger.info(f"Fetched {len(merge_requests)} MRs from GitLab project {project_id}")
     
-    return {
+    result = {
         "merge_requests": merge_requests,
         "page": page,
         "per_page": per_page,
         "total": len(merge_requests)
     }
+    
+    ttl = 120 if state == "opened" else 300
+    cache_service.set("gitlab:mrs", result, ttl=ttl, project_id=project_id, state=state, page=page, per_page=per_page)
+    
+    return result
 
 
 def fetch_merge_request_details(
@@ -139,6 +155,11 @@ def fetch_merge_request_details(
     project_id: str,
     mr_iid: int
 ) -> Dict[str, Any]:
+    cached = cache_service.get("gitlab:mr_details", project_id=project_id, mr_iid=mr_iid)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching MR !{mr_iid} details from GitLab project {project_id}")
 
     mr_endpoint = f"/projects/{project_id.replace('/', '%2F')}/merge_requests/{mr_iid}"
     mr_data = _make_gitlab_request(mr_endpoint, token)
@@ -205,6 +226,7 @@ def fetch_merge_request_details(
         }
     }
     
+    cache_service.set("gitlab:mr_details", mr_details, ttl=180, project_id=project_id, mr_iid=mr_iid)
     security_logger.info(f"Fetched MR !{mr_iid} details from GitLab project {project_id}")
     return mr_details
 
@@ -215,6 +237,11 @@ def fetch_file_content(
     file_path: str,
     branch: str = "main"
 ) -> Dict[str, Any]:
+    cached = cache_service.get("gitlab:file_content", project_id=project_id, file_path=file_path, branch=branch)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching file content: {file_path} from GitLab project {project_id}@{branch}")
 
     encoded_path = file_path.replace("/", "%2F")
     endpoint = f"/projects/{project_id.replace('/', '%2F')}/repository/files/{encoded_path}"
@@ -232,6 +259,7 @@ def fetch_file_content(
         "branch": branch
     }
     
+    cache_service.set("gitlab:file_content", file_info, ttl=600, project_id=project_id, file_path=file_path, branch=branch)
     security_logger.info(f"Fetched file content: {file_path} from GitLab project {project_id}@{branch}")
     return file_info
 
@@ -242,6 +270,11 @@ def fetch_file_diff(
     mr_iid: int,
     file_path: str
 ) -> Dict[str, Any]:
+    cached = cache_service.get("gitlab:file_diff", project_id=project_id, mr_iid=mr_iid, file_path=file_path)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching diff for {file_path} in MR !{mr_iid} from GitLab project {project_id}")
 
     changes_endpoint = f"/projects/{project_id.replace('/', '%2F')}/merge_requests/{mr_iid}/changes"
     changes_data = _make_gitlab_request(changes_endpoint, token)
@@ -272,5 +305,6 @@ def fetch_file_diff(
         "previous_path": target_file.get("old_path") if target_file["renamed_file"] else None
     }
     
+    cache_service.set("gitlab:file_diff", file_diff, ttl=300, project_id=project_id, mr_iid=mr_iid, file_path=file_path)
     security_logger.info(f"Fetched diff for {file_path} in MR !{mr_iid} from GitLab project {project_id}")
     return file_diff

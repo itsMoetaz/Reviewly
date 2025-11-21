@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.models.project import PlatformType
 
 
@@ -83,3 +83,23 @@ class ProjectResponseWithoutTokens(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class ProjectStats(BaseModel):
+    branches_count: int = 0
+    open_prs_count: int = 0
+    closed_prs_count: int = 0
+    total_prs_count: int = 0
+    last_activity: Optional[datetime] = None
+
+
+class ProjectResponseWithStats(ProjectResponse):
+    stats: ProjectStats
+
+
+class ProjectListResponse(BaseModel):
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+    projects: List[ProjectResponse]

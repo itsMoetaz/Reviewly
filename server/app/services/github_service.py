@@ -2,6 +2,7 @@ from typing import List, Dict, Optional, Any
 import requests
 from fastapi import HTTPException, status
 from app.core.logging_config import security_logger
+from app.services.cache_service import cache_service
 
 
 class GitHubAPIError(Exception):
@@ -69,7 +70,11 @@ def _make_github_request(
 
 
 def fetch_branches(token: str, owner: str, repo: str) -> List[Dict[str, Any]]:
-
+    cached = cache_service.get("github:branches", owner=owner, repo=repo)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching branches from {owner}/{repo}")
     endpoint = f"/repos/{owner}/{repo}/branches"
     branches_data = _make_github_request(endpoint, token)
     branches = []
@@ -83,6 +88,7 @@ def fetch_branches(token: str, owner: str, repo: str) -> List[Dict[str, Any]]:
             "protected": branch.get("protected", False)
         })
     
+    cache_service.set("github:branches", branches, ttl=300, owner=owner, repo=repo)
     security_logger.info(f"Fetched {len(branches)} branches from {owner}/{repo}")
     return branches
 
@@ -95,6 +101,11 @@ def fetch_pull_requests(
     page: int = 1,
     per_page: int = 20
 ) -> Dict[str, Any]:
+    cached = cache_service.get("github:prs", owner=owner, repo=repo, state=state, page=page, per_page=per_page)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching PRs from {owner}/{repo} (state={state})")
 
     endpoint = f"/repos/{owner}/{repo}/pulls"
     params = {
@@ -125,12 +136,17 @@ def fetch_pull_requests(
     
     security_logger.info(f"Fetched {len(pull_requests)} PRs from {owner}/{repo}")
     
-    return {
+    result = {
         "pull_requests": pull_requests,
         "page": page,
         "per_page": per_page,
         "total": len(pull_requests)  
     }
+    
+    ttl = 120 if state == "open" else 300
+    cache_service.set("github:prs", result, ttl=ttl, owner=owner, repo=repo, state=state, page=page, per_page=per_page)
+    
+    return result
 
 
 def fetch_pull_request_details(
@@ -139,6 +155,11 @@ def fetch_pull_request_details(
     repo: str,
     pr_number: int
 ) -> Dict[str, Any]:
+    cached = cache_service.get("github:pr_details", owner=owner, repo=repo, pr_number=pr_number)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching PR #{pr_number} details from {owner}/{repo}")
 
     pr_endpoint = f"/repos/{owner}/{repo}/pulls/{pr_number}"
     pr_data = _make_github_request(pr_endpoint, token)
@@ -200,6 +221,7 @@ def fetch_pull_request_details(
         }
     }
     
+    cache_service.set("github:pr_details", pr_details, ttl=180, owner=owner, repo=repo, pr_number=pr_number)
     security_logger.info(f"Fetched PR #{pr_number} details from {owner}/{repo}")
     return pr_details
 
@@ -211,6 +233,11 @@ def fetch_file_content(
     file_path: str,
     branch: str = "main"
 ) -> Dict[str, Any]:
+    cached = cache_service.get("github:file_content", owner=owner, repo=repo, file_path=file_path, branch=branch)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching file content: {file_path} from {owner}/{repo}@{branch}")
 
     endpoint = f"/repos/{owner}/{repo}/contents/{file_path}"
     params = {"ref": branch}
@@ -228,6 +255,7 @@ def fetch_file_content(
         "download_url": file_data.get("download_url")
     }
     
+    cache_service.set("github:file_content", file_info, ttl=600, owner=owner, repo=repo, file_path=file_path, branch=branch)
     security_logger.info(f"Fetched file content: {file_path} from {owner}/{repo}@{branch}")
     return file_info
 
@@ -239,6 +267,11 @@ def fetch_file_diff(
     pr_number: int,
     file_path: str
 ) -> Dict[str, Any]:
+    cached = cache_service.get("github:file_diff", owner=owner, repo=repo, pr_number=pr_number, file_path=file_path)
+    if cached:
+        return cached
+    
+    security_logger.info(f"[CACHE MISS] Fetching diff for {file_path} in PR #{pr_number} from {owner}/{repo}")
 
     files_endpoint = f"/repos/{owner}/{repo}/pulls/{pr_number}/files"
     files_data = _make_github_request(files_endpoint, token)
@@ -265,5 +298,6 @@ def fetch_file_diff(
         "previous_filename": target_file.get("previous_filename") 
     }
     
+    cache_service.set("github:file_diff", file_diff, ttl=300, owner=owner, repo=repo, pr_number=pr_number, file_path=file_path)
     security_logger.info(f"Fetched diff for {file_path} in PR #{pr_number} from {owner}/{repo}")
     return file_diff
