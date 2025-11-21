@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, validator
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, validator
+
 from app.models.project import PlatformType
 
 
@@ -16,17 +18,17 @@ class ProjectCreateGitHub(ProjectBase):
     github_token: str
     github_repo_owner: str
     github_repo_name: str
-    
-    @validator('platform')
+
+    @validator("platform")
     def validate_platform(cls, v):
         if v != PlatformType.GITHUB:
-            raise ValueError('Platform must be github')
+            raise ValueError("Platform must be github")
         return v
-    
-    @validator('repository_url')
+
+    @validator("repository_url")
     def validate_github_url(cls, v):
-        if not v.startswith('https://github.com/'):
-            raise ValueError('Repository URL must be a valid GitHub URL (https://github.com/...)')
+        if not v.startswith("https://github.com/"):
+            raise ValueError("Repository URL must be a valid GitHub URL (https://github.com/...)")
         return v
 
 
@@ -34,17 +36,17 @@ class ProjectCreateGitLab(ProjectBase):
     platform: PlatformType = PlatformType.GITLAB
     gitlab_project_id: str
     gitlab_token: str
-    
-    @validator('platform')
+
+    @validator("platform")
     def validate_platform(cls, v):
         if v != PlatformType.GITLAB:
-            raise ValueError('Platform must be gitlab')
+            raise ValueError("Platform must be gitlab")
         return v
-    
-    @validator('repository_url')
+
+    @validator("repository_url")
     def validate_gitlab_url(cls, v):
-        if not v.startswith('https://gitlab.com/'):
-            raise ValueError('Repository URL must be a valid GitLab URL (https://gitlab.com/...)')
+        if not v.startswith("https://gitlab.com/"):
+            raise ValueError("Repository URL must be a valid GitLab URL (https://gitlab.com/...)")
         return v
 
 
@@ -80,7 +82,7 @@ class ProjectResponseWithoutTokens(BaseModel):
     user_id: int
     is_active: bool
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 

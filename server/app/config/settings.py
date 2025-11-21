@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
 from typing import List
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -26,17 +27,19 @@ class Settings(BaseSettings):
     MAX_FILES_CONTEXT: int = 5
     MAX_FILE_CONTENT_SIZE: int = 2000
 
+    # ---------- Environment Variables ----------
+    ENVIRONMENT: str = "development"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
-    
+
     @property
     def groq_api_keys_list(self) -> List[str]:
-        """Parse comma-separated API keys into list"""
         if not self.GROQ_API_KEYS:
             return []
-        return [key.strip() for key in self.GROQ_API_KEYS.split(',') if key.strip()]
+        return [key.strip() for key in self.GROQ_API_KEYS.split(",") if key.strip()]
 
     @property
     def sqlalchemy_database_url(self) -> str:
@@ -44,6 +47,10 @@ class Settings(BaseSettings):
         if url.startswith("postgresql://") and "+psycopg2" not in url:
             url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
         return url
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
 
 
 settings = Settings()

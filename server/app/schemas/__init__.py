@@ -1,16 +1,16 @@
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, UserLogin
 from app.schemas.project import (
     ProjectCreateGitHub,
     ProjectCreateGitLab,
-    ProjectUpdate,
     ProjectResponse,
-    ProjectResponseWithoutTokens
+    ProjectResponseWithoutTokens,
+    ProjectUpdate,
 )
 from app.schemas.token import Token, TokenData
+from app.schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
 
 __all__ = [
     "UserCreate",
-    "UserUpdate", 
+    "UserUpdate",
     "UserResponse",
     "UserLogin",
     "ProjectCreateGitHub",
@@ -19,5 +19,5 @@ __all__ = [
     "ProjectResponse",
     "ProjectResponseWithoutTokens",
     "Token",
-    "TokenData"
+    "TokenData",
 ]

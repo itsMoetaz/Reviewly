@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class ReviewStatus(str, Enum):
@@ -37,7 +38,7 @@ class ReviewIssueResponse(BaseModel):
     description: str
     suggestion: Optional[str]
     code_snippet: Optional[str]
-    
+
     class Config:
         from_attributes = True
 
@@ -58,7 +59,7 @@ class AIReviewResponse(BaseModel):
     created_at: datetime
     completed_at: Optional[datetime]
     error_message: Optional[str]
-    
+
     class Config:
         from_attributes = True
 

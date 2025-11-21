@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import List, Optional
+
+from pydantic import BaseModel
+
 from app.models.project import PlatformType
 
-
 # ==================== Branch Schemas ====================
+
 
 class BranchCommit(BaseModel):
     sha: str
@@ -26,6 +28,7 @@ class BranchListResponse(BaseModel):
 
 
 # ==================== Pull Request / Merge Request Schemas ====================
+
 
 class PullRequestAuthor(BaseModel):
     username: str
@@ -62,6 +65,7 @@ class PullRequestListResponse(BaseModel):
 
 
 # ==================== Pull Request Details Schemas ====================
+
 
 class CommitInfo(BaseModel):
     sha: str
@@ -116,6 +120,7 @@ class PullRequestDetailsResponse(BaseModel):
 
 # ==================== File Content Schemas ====================
 
+
 class FileContent(BaseModel):
     path: str
     name: str
@@ -134,6 +139,7 @@ class FileContentResponse(BaseModel):
 
 
 # ==================== File Diff Schemas ====================
+
 
 class FileDiff(BaseModel):
     path: str

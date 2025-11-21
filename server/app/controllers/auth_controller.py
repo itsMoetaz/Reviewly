@@ -1,17 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Cookie
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from app.core.dependencies import get_current_active_user, get_db
-from app.schemas.user import UserCreate, UserResponse
-from app.services.auth_service import create_user
-from app.schemas.token import Token
-from app.services.auth_service import authenticate_user
-from app.core.security import create_access_token, create_refresh_token, decode_access_token
-from app.core.logging_config import security_logger
-from app.models.user import User
+from sqlalchemy.orm import Session
+
 from app.config.settings import settings
+from app.core.dependencies import get_current_active_user, get_db
+from app.core.logging_config import security_logger
+from app.core.security import create_access_token, create_refresh_token, decode_access_token
+from app.models.user import User
+from app.schemas.token import Token
+from app.schemas.user import UserCreate, UserResponse
+from app.services.auth_service import authenticate_user, create_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 limiter = Limiter(key_func=get_remote_address)
@@ -25,17 +25,19 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token, status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
-def login(request: Request,
-          response: Response,
-          form_data: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(get_db)):
+def login(
+    request: Request,
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
     email = form_data.username
     client_ip = request.client.host
-    
+
     security_logger.info(f"Login attempt from IP: {client_ip} for email: {email}")
-    
+
     user = authenticate_user(db, email, form_data.password)
-    
+
     if user is None:
         security_logger.warning(f"Failed login from IP: {client_ip} for email: {email}")
         raise HTTPException(
@@ -43,17 +45,14 @@ def login(request: Request,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         security_logger.warning(f"Inactive user login attempt from IP: {client_ip} for email: {email}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
+
     security_logger.info(f"Successful login from IP: {client_ip} for user: {email}")
-    
-   # Convert user.id to string for JWT spec compliance
+
+    # Convert user.id to string for JWT spec compliance
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
@@ -63,12 +62,12 @@ def login(request: Request,
         httponly=True,
         max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
-        secure=False,
-        path="/auth"
+        secure=settings.is_production,
+        path="/auth",
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
-    
+
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(response: Response):
@@ -87,9 +86,9 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
         )
 
     try:
-        payload = decode_access_token(refresh_token) 
+        payload = decode_access_token(refresh_token)
         if payload is None:
-             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         user_id_str: str = payload.get("sub")
         if user_id_str is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
@@ -105,10 +104,7 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
 
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
@@ -119,13 +115,11 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
         httponly=True,
         max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
         samesite="lax",
-        secure=False,
-        path="/auth"
+        secure=settings.is_production,
+        path="/auth",
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
-
-
 
 
 @router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)

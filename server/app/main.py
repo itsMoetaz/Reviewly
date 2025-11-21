@@ -1,21 +1,17 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
-from sqlalchemy.exc import IntegrityError
-from contextlib import asynccontextmanager
-from starlette.middleware.base import BaseHTTPMiddleware
 import logging
+from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
+from sqlalchemy.exc import IntegrityError
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.controllers import auth_controller, project_controller, repository_controller, ai_review_controller
-from app.core.exceptions import (
-    validation_exception_handler,
-    database_exception_handler,
-    general_exception_handler
-)
+from app.controllers import ai_review_controller, auth_controller, project_controller, repository_controller
+from app.core.exceptions import database_exception_handler, general_exception_handler, validation_exception_handler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,7 +42,7 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.state.limiter = limiter
@@ -54,7 +50,7 @@ app.state.limiter = limiter
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,8 +74,4 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "service": "CodeReview API",
-        "version": "1.0.0"
-    }
+    return {"status": "healthy", "service": "CodeReview API", "version": "1.0.0"}

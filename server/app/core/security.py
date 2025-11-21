@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
 from app.config.settings import settings
+from app.core.logging_config import security_logger
 
 pwd_context = CryptContext(
-    schemes=["argon2"],
-    deprecated="auto",
-    argon2__memory_cost=65536,
-    argon2__time_cost=3,
-    argon2__parallelism=4
+    schemes=["argon2"], deprecated="auto", argon2__memory_cost=65536, argon2__time_cost=3, argon2__parallelism=4
 )
 
 
