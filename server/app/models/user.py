@@ -25,6 +25,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    ai_reviews = relationship("AIReview", back_populates="requester", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User {self.username}>"

@@ -10,13 +10,12 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from app.controllers import auth_controller, project_controller, repository_controller
+from app.controllers import auth_controller, project_controller, repository_controller, ai_review_controller
 from app.core.exceptions import (
     validation_exception_handler,
     database_exception_handler,
     general_exception_handler
 )
-from app.core.logging_config import security_logger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ app.state.limiter = limiter
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,6 +68,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 app.include_router(auth_controller.router)
 app.include_router(project_controller.router)
 app.include_router(repository_controller.router)
+app.include_router(ai_review_controller.router)
 
 
 @app.get("/")

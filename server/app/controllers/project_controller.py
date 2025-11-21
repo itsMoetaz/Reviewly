@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List, Union, Optional
-from app.core.dependencies import get_current_active_user, get_db, require_admin
+from typing import Optional
+from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User, UserRole
-from app.models.project import Project
 from app.schemas.project import (
     ProjectCreateGitHub, ProjectListResponse,
     ProjectCreateGitLab, ProjectResponseWithStats,
     ProjectUpdate,
-    ProjectResponse,
-    ProjectResponseWithoutTokens
+    ProjectResponse
 )
 from app.services import project_service
 from app.core.logging_config import security_logger

@@ -22,8 +22,6 @@ class CacheService:
     
     def set(self, prefix: str, value: Any, ttl: int = 300, **kwargs):
         key = self._generate_key(prefix, **kwargs)
-        temp_cache = TTLCache(maxsize=1000, ttl=ttl)
-        temp_cache[key] = value
         self.cache[key] = value
         security_logger.info(f"[CACHE SET] {prefix} - {kwargs} (TTL: {ttl}s)")
     
@@ -39,8 +37,8 @@ class CacheService:
             try:
                 if str(project_id) in str(key):
                     keys_to_delete.append(key)
-            except:
-                pass
+            except Exception as e:
+                security_logger.warning(f"Failed to process cache key: {e}")
         
         for key in keys_to_delete:
             del self.cache[key]

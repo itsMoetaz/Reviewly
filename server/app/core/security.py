@@ -37,8 +37,10 @@ def decode_access_token(token: str) -> Optional[dict]:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError as e:
+        security_logger.error(f"JWT decode error: {e}")
         return None
     except Exception as e:
+        security_logger.error(f"Unexpected token decode error: {e}")
         return None
 
 
