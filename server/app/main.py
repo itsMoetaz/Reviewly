@@ -10,7 +10,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from app.controllers import auth_controller, project_controller
+from app.controllers import auth_controller, project_controller, repository_controller
 from app.core.exceptions import (
     validation_exception_handler,
     database_exception_handler,
@@ -68,6 +68,7 @@ app.add_exception_handler(Exception, general_exception_handler)
 
 app.include_router(auth_controller.router)
 app.include_router(project_controller.router)
+app.include_router(repository_controller.router)
 
 
 @app.get("/")
