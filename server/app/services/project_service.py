@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 import requests
 from app.schemas.project import ProjectCreateGitHub, ProjectCreateGitLab
 from app.models.project import Project, PlatformType
+from app.services.cache_service import cache_service
 
 
 def verify_github_token(token: str, owner: str, repo: str) -> bool:
@@ -205,6 +206,9 @@ def update_project(db: Session, project_id: int, project_data: dict, user_id: in
     
     db.commit()
     db.refresh(project)
+    
+    cache_service.clear_project(project_id)
+    
     return project
 
 
@@ -216,4 +220,7 @@ def delete_project(db: Session, project_id: int, user_id: int) -> bool:
     
     db.delete(project)
     db.commit()
+    
+    cache_service.clear_project(project_id)
+    
     return True
