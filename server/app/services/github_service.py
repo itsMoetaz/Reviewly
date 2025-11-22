@@ -95,6 +95,93 @@ def create_pr_comment(token: str, owner: str, repo: str, pr_number: int, comment
     return {"comment_id": response["id"], "html_url": response["html_url"], "created_at": response["created_at"]}
 
 
+def _make_github_patch_request(endpoint: str, token: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    base_url = "https://api.github.com"
+    url = f"{base_url}{endpoint}"
+
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "CodeReview-App",
+    }
+
+    try:
+        response = requests.patch(url, headers=headers, json=data, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitHub token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitHub")
+        elif response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitHub API error: {response.status_code}"
+            )
+
+        return response.json()
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitHub API PATCH request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitHub API")
+
+
+def _make_github_delete_request(endpoint: str, token: str) -> None:
+    base_url = "https://api.github.com"
+    url = f"{base_url}{endpoint}"
+
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "CodeReview-App",
+    }
+
+    try:
+        response = requests.delete(url, headers=headers, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitHub token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitHub")
+        elif response.status_code != 204:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitHub API error: {response.status_code}"
+            )
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitHub API DELETE request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitHub API")
+
+
+def update_pr_comment(token: str, owner: str, repo: str, comment_id: int, new_body: str) -> Dict[str, Any]:
+    endpoint = f"/repos/{owner}/{repo}/issues/comments/{comment_id}"
+    payload = {"body": new_body}
+    response = _make_github_patch_request(endpoint, token, data=payload)
+
+    return {"updated_at": response["updated_at"]}
+
+
+def delete_pr_comment(token: str, owner: str, repo: str, comment_id: int) -> None:
+    endpoint = f"/repos/{owner}/{repo}/issues/comments/{comment_id}"
+    _make_github_delete_request(endpoint, token)
+
+
+def create_inline_pr_comment(
+    token: str, owner: str, repo: str, pr_number: int, comment_body: str, commit_id: str, file_path: str, line: int
+) -> Dict[str, Any]:
+    endpoint = f"/repos/{owner}/{repo}/pulls/{pr_number}/comments"
+    payload = {"body": comment_body, "commit_id": commit_id, "path": file_path, "line": line, "side": "RIGHT"}
+    response = _make_github_post_request(endpoint, token, data=payload)
+
+    return {"comment_id": response["id"], "html_url": response["html_url"]}
+
+
 def fetch_branches(token: str, owner: str, repo: str) -> List[Dict[str, Any]]:
     cached = cache_service.get("github:branches", owner=owner, repo=repo)
     if cached:

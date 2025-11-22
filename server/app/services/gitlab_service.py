@@ -88,6 +88,98 @@ def create_mr_comment(token: str, project_id: str, mr_iid: int, comment_body: st
     return {"note_id": response["id"], "web_url": response.get("web_url"), "created_at": response["created_at"]}
 
 
+def _make_gitlab_put_request(endpoint: str, token: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    base_url = "https://gitlab.com/api/v4"
+    url = f"{base_url}{endpoint}"
+
+    headers = {"Authorization": f"Bearer {token}", "User-Agent": "CodeReview-App"}
+
+    try:
+        response = requests.put(url, headers=headers, json=data, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitLab token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitLab")
+        elif response.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitLab API error: {response.status_code}"
+            )
+
+        return response.json()
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitLab API PUT request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitLab API")
+
+
+def _make_gitlab_delete_request(endpoint: str, token: str) -> None:
+    base_url = "https://gitlab.com/api/v4"
+    url = f"{base_url}{endpoint}"
+
+    headers = {"Authorization": f"Bearer {token}", "User-Agent": "CodeReview-App"}
+
+    try:
+        response = requests.delete(url, headers=headers, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitLab token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitLab")
+        elif response.status_code != 204:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitLab API error: {response.status_code}"
+            )
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitLab API DELETE request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitLab API")
+
+
+def update_mr_comment(token: str, project_id: str, mr_iid: int, note_id: int, new_body: str) -> Dict[str, Any]:
+    project_id_encoded = project_id.replace("/", "%2F")
+    endpoint = f"/projects/{project_id_encoded}/merge_requests/{mr_iid}/notes/{note_id}"
+    payload = {"body": new_body}
+    response = _make_gitlab_put_request(endpoint, token, data=payload)
+
+    return {"updated_at": response["updated_at"]}
+
+
+def delete_mr_comment(token: str, project_id: str, mr_iid: int, note_id: int) -> None:
+    project_id_encoded = project_id.replace("/", "%2F")
+    endpoint = f"/projects/{project_id_encoded}/merge_requests/{mr_iid}/notes/{note_id}"
+    _make_gitlab_delete_request(endpoint, token)
+
+
+def create_inline_mr_comment(
+    token: str, project_id: str, mr_iid: int, comment_body: str, commit_sha: str, file_path: str, new_line: int
+) -> Dict[str, Any]:
+    project_id_encoded = project_id.replace("/", "%2F")
+    endpoint = f"/projects/{project_id_encoded}/merge_requests/{mr_iid}/discussions"
+    payload = {
+        "body": comment_body,
+        "position": {
+            "base_sha": commit_sha,
+            "head_sha": commit_sha,
+            "start_sha": commit_sha,
+            "position_type": "text",
+            "new_path": file_path,
+            "new_line": new_line,
+        },
+    }
+    response = _make_gitlab_post_request(endpoint, token, data=payload)
+
+    return {"note_id": response["notes"][0]["id"]}
+
+
 def fetch_branches(token: str, project_id: str) -> List[Dict[str, Any]]:
     cached = cache_service.get("gitlab:branches", project_id=project_id)
     if cached:
