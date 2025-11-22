@@ -54,6 +54,47 @@ def _make_github_request(endpoint: str, token: str, params: Optional[Dict[str, A
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitHub API")
 
 
+def _make_github_post_request(endpoint: str, token: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    base_url = "https://api.github.com"
+    url = f"{base_url}{endpoint}"
+
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "CodeReview-App",
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitHub token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitHub")
+        elif response.status_code not in [200, 201]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitHub API error: {response.status_code}"
+            )
+
+        return response.json()
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitHub API POST request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitHub API")
+
+
+def create_pr_comment(token: str, owner: str, repo: str, pr_number: int, comment_body: str) -> Dict[str, Any]:
+    endpoint = f"/repos/{owner}/{repo}/issues/{pr_number}/comments"
+    payload = {"body": comment_body}
+    response = _make_github_post_request(endpoint, token, data=payload)
+
+    return {"comment_id": response["id"], "html_url": response["html_url"], "created_at": response["created_at"]}
+
+
 def fetch_branches(token: str, owner: str, repo: str) -> List[Dict[str, Any]]:
     cached = cache_service.get("github:branches", owner=owner, repo=repo)
     if cached:

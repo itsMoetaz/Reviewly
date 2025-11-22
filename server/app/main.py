@@ -2,16 +2,13 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
+from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy.exc import IntegrityError
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.controllers import ai_review_controller, auth_controller, project_controller, repository_controller
-from app.core.exceptions import database_exception_handler, general_exception_handler, validation_exception_handler
+from app.controllers.routes import register_routes
+from app.core.exception_config import register_exception_handlers
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,15 +53,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(IntegrityError, database_exception_handler)
-app.add_exception_handler(Exception, general_exception_handler)
+register_exception_handlers(app)
 
-app.include_router(auth_controller.router)
-app.include_router(project_controller.router)
-app.include_router(repository_controller.router)
-app.include_router(ai_review_controller.router)
+register_routes(app)
 
 
 @app.get("/")

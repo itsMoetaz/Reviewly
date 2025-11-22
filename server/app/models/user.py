@@ -28,6 +28,7 @@ class User(Base):
 
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
     ai_reviews = relationship("AIReview", back_populates="requester", cascade="all, delete-orphan")
+    pr_comments = relationship("PRComment", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User {self.username}>"
