@@ -60,7 +60,11 @@ def get_pr_comments(db: Session, project_id: int, pr_number: int, user_id: int) 
 
     comments = (
         db.query(PRComment)
-        .filter(PRComment.project_id == project_id, PRComment.pr_number == pr_number, PRComment.is_deleted is False)
+        .filter(
+            PRComment.project_id == project_id,
+            PRComment.pr_number == pr_number,
+            PRComment.is_deleted.is_(False),
+        )
         .order_by(PRComment.created_at.desc())
         .all()
     )

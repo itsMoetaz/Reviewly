@@ -5,8 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
-from app.schemas.pr_comment import InlineCommentCreate, PRCommentCreate, PRCommentResponse, PRCommentUpdate
-from app.services import pr_comment_service
+from app.schemas.pr_comment import (
+    InlineCommentCreate,
+    PRCommentCreate,
+    PRCommentResponse,
+    PRCommentUpdate,
+    ReactionCreate,
+    ReactionResponse,
+    ReactionsSummary,
+)
+from app.services import pr_comment_service, reaction_service
 
 router = APIRouter(prefix="/pr-comments", tags=["PR Comments"])
 
@@ -96,3 +104,36 @@ async def create_inline_comment(
     )
 
     return comment
+
+
+@router.post("/{comment_id}/reactions", response_model=ReactionResponse, status_code=status.HTTP_201_CREATED)
+def add_reaction(
+    comment_id: int,
+    reaction_data: ReactionCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    reaction = reaction_service.add_reaction(
+        db=db, comment_id=comment_id, user_id=current_user.id, reaction_type=reaction_data.reaction_type.value
+    )
+    return reaction
+
+
+@router.delete("/{comment_id}/reactions/{reaction_type}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_reaction(
+    comment_id: int,
+    reaction_type: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    reaction_service.remove_reaction(db=db, comment_id=comment_id, user_id=current_user.id, reaction_type=reaction_type)
+
+
+@router.get("/{comment_id}/reactions", response_model=ReactionsSummary)
+def get_reactions(
+    comment_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    summary = reaction_service.get_reactions_summary(db=db, comment_id=comment_id, user_id=current_user.id)
+    return summary

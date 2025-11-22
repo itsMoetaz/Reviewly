@@ -1,4 +1,13 @@
-from app.schemas.pr_comment import InlineCommentCreate, PRCommentCreate, PRCommentResponse, PRCommentUpdate
+from app.schemas.pr_comment import (
+    InlineCommentCreate,
+    PRCommentCreate,
+    PRCommentResponse,
+    PRCommentUpdate,
+    ReactionCreate,
+    ReactionResponse,
+    ReactionsSummary,
+    ReactionType,
+)
 from app.schemas.project import (
     ProjectCreateGitHub,
     ProjectCreateGitLab,
@@ -25,4 +34,8 @@ __all__ = [
     "PRCommentResponse",
     "PRCommentUpdate",
     "InlineCommentCreate",
+    "ReactionCreate",
+    "ReactionResponse",
+    "ReactionsSummary",
+    "ReactionType",
 ]

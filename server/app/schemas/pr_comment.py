@@ -1,11 +1,46 @@
 from datetime import datetime
-from typing import Optional
+from enum import Enum
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class PRCommentCreate(BaseModel):
     comment_text: str = Field(..., min_length=1, max_length=65000, description="The comment text to post")
+
+
+class ReactionType(str, Enum):
+    THUMBS_UP = "thumbs_up"
+    THUMBS_DOWN = "thumbs_down"
+    HEART = "heart"
+    ROCKET = "rocket"
+    EYES = "eyes"
+    PARTY = "party"
+
+
+class ReactionCreate(BaseModel):
+    reaction_type: ReactionType
+
+
+class ReactionResponse(BaseModel):
+    id: int
+    comment_id: int
+    user_id: int
+    reaction_type: ReactionType
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ReactionsSummary(BaseModel):
+    thumbs_up: int = 0
+    thumbs_down: int = 0
+    heart: int = 0
+    rocket: int = 0
+    eyes: int = 0
+    party: int = 0
+    user_reactions: List[ReactionType] = []
 
 
 class PRCommentResponse(BaseModel):
@@ -22,6 +57,7 @@ class PRCommentResponse(BaseModel):
     line_end: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    reactions_summary: Optional[ReactionsSummary] = None
 
     class Config:
         from_attributes = True
