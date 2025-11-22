@@ -1,4 +1,4 @@
-from app.schemas.pr_comment import PRCommentCreate, PRCommentResponse
+from app.schemas.pr_comment import InlineCommentCreate, PRCommentCreate, PRCommentResponse, PRCommentUpdate
 from app.schemas.project import (
     ProjectCreateGitHub,
     ProjectCreateGitLab,
@@ -23,4 +23,6 @@ __all__ = [
     "TokenData",
     "PRCommentCreate",
     "PRCommentResponse",
+    "PRCommentUpdate",
+    "InlineCommentCreate",
 ]
