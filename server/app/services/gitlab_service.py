@@ -50,6 +50,44 @@ def _make_gitlab_request(endpoint: str, token: str, params: Optional[Dict[str, A
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitLab API")
 
 
+def _make_gitlab_post_request(endpoint: str, token: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    base_url = "https://gitlab.com/api/v4"
+    url = f"{base_url}{endpoint}"
+
+    headers = {"Authorization": f"Bearer {token}", "User-Agent": "CodeReview-App"}
+
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+
+        if response.status_code == 401:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired GitLab token")
+        elif response.status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access forbidden. Check token permissions."
+            )
+        elif response.status_code == 404:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resource not found on GitLab")
+        elif response.status_code not in [200, 201]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"GitLab API error: {response.status_code}"
+            )
+
+        return response.json()
+
+    except requests.RequestException as e:
+        security_logger.error(f"GitLab API POST request failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Failed to connect to GitLab API")
+
+
+def create_mr_comment(token: str, project_id: str, mr_iid: int, comment_body: str) -> Dict[str, Any]:
+    project_id_encoded = project_id.replace("/", "%2F")
+    endpoint = f"/projects/{project_id_encoded}/merge_requests/{mr_iid}/notes"
+    payload = {"body": comment_body}
+    response = _make_gitlab_post_request(endpoint, token, data=payload)
+
+    return {"note_id": response["id"], "web_url": response.get("web_url"), "created_at": response["created_at"]}
+
+
 def fetch_branches(token: str, project_id: str) -> List[Dict[str, Any]]:
     cached = cache_service.get("gitlab:branches", project_id=project_id)
     if cached:
