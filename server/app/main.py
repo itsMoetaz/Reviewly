@@ -66,6 +66,3 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "CodeReview API", "version": "1.0.0"}
-
-
-print("hello")
