@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -42,18 +40,20 @@ async def create_comment(
     return comment
 
 
-@router.get("/projects/{project_id}/pull-requests/{pr_number}", response_model=List[PRCommentResponse])
+@router.get("/projects/{project_id}/pull-requests/{pr_number}")
 def get_comments(
     project_id: int,
     pr_number: int,
+    page: int = 1,
+    per_page: int = 20,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
-    comments = pr_comment_service.get_pr_comments(
-        db=db, project_id=project_id, pr_number=pr_number, user_id=current_user.id
+    result = pr_comment_service.get_pr_comments(
+        db=db, project_id=project_id, pr_number=pr_number, user_id=current_user.id, page=page, per_page=per_page
     )
 
-    return comments
+    return result
 
 
 @router.put("/{comment_id}", response_model=PRCommentResponse)

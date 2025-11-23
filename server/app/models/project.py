@@ -33,6 +33,8 @@ class Project(Base):
     owner = relationship("User", back_populates="projects")
     ai_reviews = relationship("AIReview", back_populates="project", cascade="all, delete-orphan")
     pr_comments = relationship("PRComment", back_populates="project", cascade="all, delete-orphan")
+    members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
+    invitations = relationship("ProjectInvitation", back_populates="project", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Project {self.name} ({self.platform.value})>"

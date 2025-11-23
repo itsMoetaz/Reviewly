@@ -6,9 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.core.logging_config import security_logger
 from app.models.project import PlatformType, Project
+from app.models.project_member import ProjectMember, ProjectMemberRole
 from app.schemas.project import ProjectCreateGitHub, ProjectCreateGitLab
-from app.services import github_service, gitlab_service
+from app.services import github_service, gitlab_service, team_service
 from app.services.cache_service import cache_service
+from app.services.redis_cache import redis_cache
 
 
 def verify_github_token(token: str, owner: str, repo: str) -> bool:
@@ -84,7 +86,18 @@ def get_user_projects(
     platform: Optional[str] = None,
     is_active: Optional[bool] = None,
 ) -> dict:
-    query = db.query(Project).filter(Project.user_id == user_id)
+
+    cache_key = f"user_projects:{user_id}:{page}:{per_page}:{platform}:{is_active}"
+
+    cached = redis_cache.get(cache_key)
+    if cached:
+        return cached
+
+    member_projects = db.query(ProjectMember.project_id).filter(ProjectMember.user_id == user_id).all()
+
+    member_projects_ids = [pid[0] for pid in member_projects]
+
+    query = db.query(Project).filter(Project.id.in_(member_projects_ids))
 
     if platform and platform != "all":
         if platform == "github":
@@ -104,7 +117,11 @@ def get_user_projects(
 
     total_pages = (total + per_page - 1) // per_page
 
-    return {"total": total, "page": page, "per_page": per_page, "total_pages": total_pages, "projects": projects}
+    result = {"total": total, "page": page, "per_page": per_page, "total_pages": total_pages, "projects": projects}
+
+    redis_cache.set(cache_key, result, ttl=300)
+
+    return result
 
 
 def get_project_stats(project: Project) -> dict:
@@ -172,12 +189,25 @@ def get_project_by_id(db: Session, project_id: int, user_id: Optional[int] = Non
     query = db.query(Project).filter(Project.id == project_id)
 
     if user_id is not None:
-        query = query.filter(Project.user_id == user_id)
+        member = (
+            db.query(ProjectMember)
+            .filter(
+                ProjectMember.project_id == project_id,
+                ProjectMember.user_id == user_id,
+            )
+            .first()
+        )
+
+        if not member:
+            return None
 
     return query.first()
 
 
 def update_project(db: Session, project_id: int, project_data: dict, user_id: int) -> Optional[Project]:
+
+    team_service.require_permission(db, project_id, user_id, ProjectMemberRole.ADMIN, "update project settings")
+
     project = get_project_by_id(db, project_id, user_id=user_id)
 
     if not project:
@@ -192,10 +222,15 @@ def update_project(db: Session, project_id: int, project_data: dict, user_id: in
 
     cache_service.clear_project(project_id)
 
+    redis_cache.clear_pattern(f"user_projects:{user_id}:*")
+
     return project
 
 
 def delete_project(db: Session, project_id: int, user_id: int) -> bool:
+
+    team_service.require_permission(db, project_id, user_id, ProjectMemberRole.OWNER, "delete project")
+
     project = get_project_by_id(db, project_id, user_id=user_id)
 
     if not project:

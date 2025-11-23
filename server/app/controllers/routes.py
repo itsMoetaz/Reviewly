@@ -6,6 +6,7 @@ from app.controllers import (
     pr_comment_controller,
     project_controller,
     repository_controller,
+    team_controller,
 )
 
 
@@ -15,3 +16,4 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(repository_controller.router)
     app.include_router(ai_review_controller.router)
     app.include_router(pr_comment_controller.router)
+    app.include_router(team_controller.router)

@@ -1,15 +1,16 @@
-from typing import List
-
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.logging_config import security_logger
 from app.models.pr_comment import PRComment
 from app.models.project import PlatformType
-from app.services import github_service, gitlab_service, project_service
+from app.models.project_member import ProjectMemberRole
+from app.services import github_service, gitlab_service, project_service, team_service
 
 
 async def create_pr_comment(db: Session, project_id: int, pr_number: int, user_id: int, comment_text: str) -> PRComment:
+    team_service.require_permission(db, project_id, user_id, ProjectMemberRole.REVIEWER)
+
     project = project_service.get_project_by_id(db, project_id, user_id=user_id)
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found or access denied")
@@ -53,23 +54,34 @@ async def create_pr_comment(db: Session, project_id: int, pr_number: int, user_i
     return comment
 
 
-def get_pr_comments(db: Session, project_id: int, pr_number: int, user_id: int) -> List[PRComment]:
+def get_pr_comments(
+    db: Session, project_id: int, pr_number: int, user_id: int, page: int = 1, per_page: int = 20
+) -> dict:
+    from sqlalchemy.orm import joinedload
+
     project = project_service.get_project_by_id(db, project_id, user_id=user_id)
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found or access denied")
 
-    comments = (
+    query = (
         db.query(PRComment)
+        .options(joinedload(PRComment.reactions))
         .filter(
             PRComment.project_id == project_id,
             PRComment.pr_number == pr_number,
             PRComment.is_deleted.is_(False),
         )
         .order_by(PRComment.created_at.desc())
-        .all()
     )
 
-    return comments
+    total = query.count()
+
+    offset = (page - 1) * per_page
+    comments = query.offset(offset).limit(per_page).all()
+
+    total_pages = (total + per_page - 1) // per_page
+
+    return {"total": total, "page": page, "per_page": per_page, "total_pages": total_pages, "comments": comments}
 
 
 async def update_pr_comment(db: Session, comment_id: int, user_id: int, new_comment_text: str) -> PRComment:

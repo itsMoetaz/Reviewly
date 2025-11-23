@@ -15,6 +15,13 @@ from app.schemas.project import (
     ProjectResponseWithoutTokens,
     ProjectUpdate,
 )
+from app.schemas.team import (
+    AcceptInvitationRequest,
+    InviteMemberRequest,
+    ProjectInvitationResponse,
+    ProjectMemberResponse,
+    UpdateMemberRoleRequest,
+)
 from app.schemas.token import Token, TokenData
 from app.schemas.user import UserCreate, UserLogin, UserResponse, UserUpdate
 
@@ -38,4 +45,9 @@ __all__ = [
     "ReactionResponse",
     "ReactionsSummary",
     "ReactionType",
+    "InviteMemberRequest",
+    "UpdateMemberRoleRequest",
+    "ProjectMemberResponse",
+    "ProjectInvitationResponse",
+    "AcceptInvitationRequest",
 ]
