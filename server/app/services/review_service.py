@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.logging_config import security_logger
 from app.models.ai_review import AIReview, IssueSeverity, ReviewIssue, ReviewStatus
-from app.services import github_service, gitlab_service, project_service
+from app.models.project_member import ProjectMemberRole
+from app.services import github_service, gitlab_service, project_service, subscription_service, team_service
 from app.services.ai_service import get_ai_service
 
 
@@ -15,6 +16,10 @@ async def create_and_process_review(
     db: Session, project_id: int, pr_number: int, user_id: int, include_context: bool = True
 ) -> AIReview:
     """Create and immediately process AI review"""
+
+    team_service.require_permission(db, project_id, user_id, ProjectMemberRole.REVIEWER)
+
+    subscription_service.check_ai_review_quota(db, user_id)
 
     existing = (
         db.query(AIReview)
@@ -36,6 +41,8 @@ async def create_and_process_review(
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    subscription_service.increment_ai_review_count(db, user_id)
 
     security_logger.info(
         f"AI review #{review.id} created for PR #{pr_number} in project {project.name} by user ID {user_id}"
@@ -149,7 +156,15 @@ def _build_diff_from_files(files: list) -> str:
 
 
 def get_review_by_id(db: Session, review_id: int, user_id: int) -> Optional[AIReview]:
-    """Get review with permission check"""
+    """Get review with permission check and caching"""
+    from app.services.redis_cache import redis_cache
+
+    cache_key = f"ai_review:{review_id}"
+
+    cached = redis_cache.get(cache_key)
+    if cached:
+        return AIReview(**cached)
+
     review = db.query(AIReview).filter(AIReview.id == review_id).first()
     if not review:
         return None
@@ -158,11 +173,31 @@ def get_review_by_id(db: Session, review_id: int, user_id: int) -> Optional[AIRe
     if not project:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No access to this project")
 
+    if review.status == ReviewStatus.COMPLETED:
+        review_dict = {
+            "id": review.id,
+            "project_id": review.project_id,
+            "pr_number": review.pr_number,
+            "requested_by": review.requested_by,
+            "status": review.status.value,
+            "overall_rating": review.overall_rating,
+            "summary": review.summary,
+            "issues_found": review.issues_found,
+            "tokens_used": review.tokens_used,
+            "processing_time_seconds": review.processing_time_seconds,
+            "error_message": review.error_message,
+            "created_at": review.created_at.isoformat() if review.created_at else None,
+            "completed_at": review.completed_at.isoformat() if review.completed_at else None,
+        }
+        redis_cache.set(cache_key, review_dict, ttl=3600)
+
     return review
 
 
 def delete_review(db: Session, review_id: int, user_id: int) -> bool:
-    """Delete a review (owner only)"""
+    """Delete a review (owner only) and invalidate cache"""
+    from app.services.redis_cache import redis_cache
+
     review = db.query(AIReview).filter(AIReview.id == review_id).first()
     if not review:
         return False
@@ -173,6 +208,9 @@ def delete_review(db: Session, review_id: int, user_id: int) -> bool:
         )
 
     security_logger.info(f"Deleting AI review #{review_id} by user ID {user_id}")
+
+    redis_cache.delete(f"ai_review:{review_id}")
+
     db.delete(review)
     db.commit()
     return True

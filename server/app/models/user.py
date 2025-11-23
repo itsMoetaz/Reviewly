@@ -13,6 +13,12 @@ class UserRole(str, enum.Enum):
     SUPERUSER = "superuser"
 
 
+class SubscriptionTier(str, enum.Enum):
+    FREE = "free"
+    PLUS = "plus"
+    PRO = "pro"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -23,12 +29,22 @@ class User(Base):
     full_name = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True)
+    subscription_tier = Column(
+        Enum(SubscriptionTier, native_enum=False, length=20), default=SubscriptionTier.FREE, nullable=False
+    )
+    subscription_updated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
     ai_reviews = relationship("AIReview", back_populates="requester", cascade="all, delete-orphan")
-    pr_comments = relationship("PRComment", back_populates="user", cascade="all, delete-orphan")
+    pr_comments = relationship(
+        "PRComment", foreign_keys="PRComment.user_id", back_populates="user", cascade="all, delete-orphan"
+    )
+    reactions = relationship("CommentReaction", back_populates="user", cascade="all, delete-orphan")
+    project_memberships = relationship(
+        "ProjectMember", foreign_keys="ProjectMember.user_id", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User {self.username}>"

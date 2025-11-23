@@ -29,6 +29,16 @@ class Settings(BaseSettings):
 
     # ---------- Environment Variables ----------
     ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_URL: str = "http://localhost:8000"
+
+    # ---------- Email Configuration ----------
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    SMTP_FROM_EMAIL: str
+    SMTP_FROM_NAME: str
 
     class Config:
         env_file = ".env"
