@@ -15,6 +15,13 @@ from app.schemas.project import (
     ProjectResponseWithoutTokens,
     ProjectUpdate,
 )
+from app.schemas.subscription import (
+    SubscriptionChangeRequest,
+    SubscriptionChangeResponse,
+    SubscriptionPlan,
+    SubscriptionPlansResponse,
+    UsageStatsResponse,
+)
 from app.schemas.team import (
     AcceptInvitationRequest,
     InviteMemberRequest,
@@ -50,4 +57,9 @@ __all__ = [
     "ProjectMemberResponse",
     "ProjectInvitationResponse",
     "AcceptInvitationRequest",
+    "UsageStatsResponse",
+    "SubscriptionChangeRequest",
+    "SubscriptionChangeResponse",
+    "SubscriptionPlan",
+    "SubscriptionPlansResponse",
 ]

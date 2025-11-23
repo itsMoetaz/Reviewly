@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.logging_config import security_logger
 from app.models.ai_review import AIReview, IssueSeverity, ReviewIssue, ReviewStatus
 from app.models.project_member import ProjectMemberRole
-from app.services import github_service, gitlab_service, project_service, team_service
+from app.services import github_service, gitlab_service, project_service, subscription_service, team_service
 from app.services.ai_service import get_ai_service
 
 
@@ -16,7 +16,11 @@ async def create_and_process_review(
     db: Session, project_id: int, pr_number: int, user_id: int, include_context: bool = True
 ) -> AIReview:
     """Create and immediately process AI review"""
+
     team_service.require_permission(db, project_id, user_id, ProjectMemberRole.REVIEWER)
+
+    subscription_service.check_ai_review_quota(db, user_id)
+
     existing = (
         db.query(AIReview)
         .filter(AIReview.project_id == project_id, AIReview.pr_number == pr_number, AIReview.requested_by == user_id)
@@ -37,6 +41,8 @@ async def create_and_process_review(
     db.add(review)
     db.commit()
     db.refresh(review)
+
+    subscription_service.increment_ai_review_count(db, user_id)
 
     security_logger.info(
         f"AI review #{review.id} created for PR #{pr_number} in project {project.name} by user ID {user_id}"

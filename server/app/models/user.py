@@ -13,6 +13,12 @@ class UserRole(str, enum.Enum):
     SUPERUSER = "superuser"
 
 
+class SubscriptionTier(str, enum.Enum):
+    FREE = "free"
+    PLUS = "plus"
+    PRO = "pro"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -23,6 +29,10 @@ class User(Base):
     full_name = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True)
+    subscription_tier = Column(
+        Enum(SubscriptionTier, native_enum=False, length=20), default=SubscriptionTier.FREE, nullable=False
+    )
+    subscription_updated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
