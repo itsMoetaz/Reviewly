@@ -3,10 +3,18 @@ export interface User {
   email: string;
   username: string;
   full_name: string;
+  avatar_url?: string;
   role: "USER" | "ADMIN";
   is_active: boolean;
-  tier: "FREE" | "PLUS" | "PRO";
+  subscription_tier: "FREE" | "PLUS" | "PRO";
   created_at: string;
+}
+
+export interface UpdateProfileData {
+  full_name?: string;
+  username?: string;
+  email?: string;
+  password?: string;
 }
 
 export interface LoginRequest {

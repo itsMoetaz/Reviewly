@@ -1,4 +1,4 @@
-import TopNavigation from '../components/navigation/TopNavigation';
+import TopNavigation from '../components/shared/TopNavigation';
 import HeroSection from '../components/sections/HeroSection';
 import ProblemSection from '../components/sections/ProblemSection';
 import FeaturesSection from '../components/sections/FeaturesSection';

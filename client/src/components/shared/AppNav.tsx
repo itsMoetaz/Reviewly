@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { ToggleTheme } from '../ui/toggle-theme';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const AppNav = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -83,7 +85,15 @@ export const AppNav = () => {
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface/50 transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-lg">
-                  {getInitials()}
+                  {user?.avatar_url ? (
+                    <img 
+                      src={`${API_URL}${user.avatar_url}`} 
+                      alt="User Avatar" 
+                      className="w-8 h-8 rounded-full object-cover" 
+                    />
+                  ) : (
+                    getInitials()
+                  )}
                 </div>
                 
                 <span className="text-sm font-medium text-foreground hidden sm:block">

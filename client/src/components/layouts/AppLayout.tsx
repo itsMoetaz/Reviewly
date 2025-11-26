@@ -1,4 +1,4 @@
-import { AppNav } from '@/components/navigation/AppNav';
+import { AppNav } from '@/components/shared/AppNav';
 
 interface AppLayoutProps {
   children: React.ReactNode;

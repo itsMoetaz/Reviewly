@@ -33,6 +33,7 @@ class User(Base):
         Enum(SubscriptionTier, native_enum=False, length=20), default=SubscriptionTier.FREE, nullable=False
     )
     subscription_updated_at = Column(DateTime, nullable=True)
+    avatar_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

@@ -24,3 +24,6 @@ alembic/versions/*.pyc
 
 # Logs
 logs/*.log
+
+# Uploads
+uploads/

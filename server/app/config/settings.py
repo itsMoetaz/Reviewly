@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str
     SMTP_FROM_NAME: str
 
+    # ---------- Upload Configuration ----------
+    UPLOAD_DIR: str = "uploads"
+    MAX_AVATAR_SIZE: int = 2 * 1024 * 1024
+    ALLOWED_AVATAR_TYPES: str = "image/jpeg,image/png,image/gif,image/webp"
+
+    @property
+    def allowed_avatar_types_list(self) -> list:
+        return [t.strip() for t in self.ALLOWED_AVATAR_TYPES.split(",")]
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
