@@ -30,7 +30,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def setup_static_files(app: FastAPI) -> None:
-    """Mount static files directory for serving uploaded files."""
     upload_path = Path(settings.UPLOAD_DIR)
     upload_path.mkdir(parents=True, exist_ok=True)
     app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")
@@ -67,7 +66,6 @@ register_exception_handlers(app)
 
 register_routes(app)
 
-# Mount static files for uploads (must be after routes to avoid conflicts)
 setup_static_files(app)
 
 

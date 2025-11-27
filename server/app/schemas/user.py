@@ -13,7 +13,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+    password: Optional[str] = Field(None, min_length=8)
 
 
 class UserUpdate(BaseModel):
@@ -31,6 +31,7 @@ class UserResponse(UserBase):
     role: UserRole
     is_active: bool
     avatar_url: Optional[str] = None
+    google_id: Optional[str] = None
     subscription_tier: SubscriptionTier
     created_at: datetime
     updated_at: Optional[datetime] = None

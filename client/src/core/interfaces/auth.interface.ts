@@ -4,6 +4,7 @@ export interface User {
   username: string;
   full_name: string;
   avatar_url?: string;
+  google_id?: string;
   role: "USER" | "ADMIN";
   is_active: boolean;
   subscription_tier: "FREE" | "PLUS" | "PRO";

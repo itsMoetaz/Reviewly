@@ -29,4 +29,8 @@ export const authApi = {
   refreshToken: async () => {
     return axios.post(`${API_URL}/auth/refresh`);
   },
+
+  getGoogleLoginUrl: () => {
+    return `${API_URL}/auth/google/login`;
+  },
 };

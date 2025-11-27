@@ -19,7 +19,9 @@ def create_user(db: Session, user_data: UserCreate) -> User:
     if existing_username:
         raise UserAlreadyExistsException("Username already taken")
 
-    hashed_password = get_password_hash(user_data.password)
+    hashed_password = None
+    if user_data.password:
+        hashed_password = get_password_hash(user_data.password)
 
     new_user = User(
         email=user_data.email,
@@ -45,6 +47,12 @@ def authenticate_user(db: Session, identifier: str, password: str) -> Optional[U
 
     if not existing_user:
         security_logger.warning(f"Failed login attempt - user not found: {identifier} at {datetime.now()}")
+        return None
+
+    if not existing_user.hashed_password:
+        security_logger.warning(
+            f"Failed login attempt - OAuth user trying password login: {identifier} at {datetime.now()}"
+        )
         return None
 
     if not verify_password(password, existing_user.hashed_password):

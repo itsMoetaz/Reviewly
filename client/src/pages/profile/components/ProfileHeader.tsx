@@ -82,7 +82,7 @@ export const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                 {user?.avatar_url ? (
                   <img
-                    src={`${API_URL}${user.avatar_url}`}
+                    src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
