@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -11,6 +12,7 @@ from app.core.security import create_access_token, create_refresh_token, decode_
 from app.models.user import User
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
+from app.services import google_oauth_service
 from app.services.auth_service import authenticate_user, create_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -125,3 +127,58 @@ def refresh_token(response: Response, refresh_token: str = Cookie(None), db: Ses
 @router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
 def get_me(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+
+@router.get("/google/login")
+def google_login(request: Request):
+    try:
+        authorization_url = google_oauth_service.get_google_auth_url()
+        security_logger.info(f"Redirecting to Google OAuth from IP: {request.client.host}")
+        return RedirectResponse(url=authorization_url)
+    except Exception as e:
+        security_logger.error(f"Failed to generate Google OAuth URL: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to initiate Google OAuth")
+
+
+@router.get("/google/callback")
+def google_callback(code: str, request: Request, response: Response, db: Session = Depends(get_db)):
+    try:
+        client_ip = request.client.host
+        security_logger.info(f"Google OAuth callback received from IP: {client_ip}")
+
+        token_data = google_oauth_service.exchange_code_for_token(code)
+
+        google_user_info = google_oauth_service.get_google_user_info(token_data["id_token"])
+
+        user = google_oauth_service.get_or_create_user_from_google(db, google_user_info)
+
+        if not user.is_active:
+            security_logger.warning(f"Inactive user OAuth login attempt: {user.email}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account is inactive")
+
+        access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token_str = create_refresh_token(data={"sub": str(user.id)})
+
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token_str,
+            httponly=True,
+            max_age=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,
+            samesite="lax",
+            secure=settings.is_production,
+            path="/auth",
+        )
+
+        security_logger.info(f"Successful Google OAuth login for user: {user.email}")
+
+        frontend_redirect = f"{settings.FRONTEND_URL}/auth/callback?token={access_token}"
+        return RedirectResponse(url=frontend_redirect)
+
+    except ValueError as e:
+        security_logger.error(f"Google OAuth validation error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        security_logger.error(f"Google OAuth callback error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to complete Google OAuth login"
+        )

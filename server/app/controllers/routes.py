@@ -8,11 +8,13 @@ from app.controllers import (
     repository_controller,
     subscription_controller,
     team_controller,
+    user_controller,
 )
 
 
 def register_routes(app: FastAPI) -> None:
     app.include_router(auth_controller.router)
+    app.include_router(user_controller.router)
     app.include_router(project_controller.router)
     app.include_router(repository_controller.router)
     app.include_router(ai_review_controller.router)

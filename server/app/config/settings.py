@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
     # ---------- Groq AI Configuration ----------
-    GROQ_API_KEYS: str = ""  # Comma-separated API keys
+    GROQ_API_KEYS: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     AI_MAX_TOKENS: int = 4000
     AI_TIMEOUT: int = 120
@@ -39,6 +39,20 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str
     SMTP_FROM_EMAIL: str
     SMTP_FROM_NAME: str
+
+    # ---------- Upload Configuration ----------
+    UPLOAD_DIR: str = "uploads"
+    MAX_AVATAR_SIZE: int = 2 * 1024 * 1024
+    ALLOWED_AVATAR_TYPES: str = "image/jpeg,image/png,image/gif,image/webp"
+
+    # ---------- Google OAuth Configuration ----------
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+
+    @property
+    def allowed_avatar_types_list(self) -> list:
+        return [t.strip() for t in self.ALLOWED_AVATAR_TYPES.split(",")]
 
     class Config:
         env_file = ".env"

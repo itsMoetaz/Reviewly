@@ -25,7 +25,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)
     full_name = Column(String, nullable=True)
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True)
@@ -33,6 +33,8 @@ class User(Base):
         Enum(SubscriptionTier, native_enum=False, length=20), default=SubscriptionTier.FREE, nullable=False
     )
     subscription_updated_at = Column(DateTime, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    google_id = Column(String, unique=True, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
