@@ -92,7 +92,7 @@ const TopNavigation = () => {
             {isAuthenticated ? (
               <>
                 <Button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/home')}
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground hover:text-foreground gap-2"
@@ -235,7 +235,7 @@ const TopNavigation = () => {
                     {user?.full_name || user?.username}
                   </span>
                 </div>
-                <Button onClick={() => navigate('/dashboard')} variant="ghost" className="w-full justify-start gap-2">
+                <Button onClick={() => navigate('/home')} variant="ghost" className="w-full justify-start gap-2">
                   <LayoutDashboard className="w-4 h-4" />
                   Dashboard
                 </Button>

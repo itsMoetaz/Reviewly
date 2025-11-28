@@ -1,7 +1,7 @@
 import { AuthLayout } from "./components/AuthLayout";
 import { RegisterForm } from "./components/RegisterForm";
 
-export const RegisterPage = () => {
+const RegisterPage = () => {
   return (
     <AuthLayout
       title="Create your account"
@@ -11,3 +11,6 @@ export const RegisterPage = () => {
     </AuthLayout>
   );
 };
+
+export default RegisterPage;
+

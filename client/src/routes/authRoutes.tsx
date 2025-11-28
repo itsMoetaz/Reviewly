@@ -1,19 +1,38 @@
+import { lazy, Suspense } from "react";
 import type { RouteObject } from "react-router-dom";
-import { LoginPage } from "@/pages/auth/LoginPage";
-import { RegisterPage } from "@/pages/auth/RegisterPage";
-import { GoogleCallbackPage } from "@/pages/auth/GoogleCallbackPage";
 
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const GoogleCallbackPage = lazy(() => import("@/pages/auth/GoogleCallbackPage"));
+
+const AuthLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 export const authRoutes: RouteObject[] = [
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={<AuthLoader />}>
+        <LoginPage />
+      </Suspense>
+    ),
   },
   {
     path: "/register",
-    element: <RegisterPage />,
+    element: (
+      <Suspense fallback={<AuthLoader />}>
+        <RegisterPage />
+      </Suspense>
+    ),
   },
   {
     path: "/auth/callback",
-    element: <GoogleCallbackPage />,
+    element: (
+      <Suspense fallback={<GoogleCallbackPage />}>
+        <GoogleCallbackPage />
+      </Suspense>
+    ),
   },
 ];

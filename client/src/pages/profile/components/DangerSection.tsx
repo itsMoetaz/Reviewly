@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export const DangerSection = () => {
+ const DangerSection = () => {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -89,3 +89,5 @@ export const DangerSection = () => {
     </div>
   );
 };
+
+export default DangerSection;

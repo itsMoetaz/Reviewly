@@ -8,8 +8,8 @@ from app.config.database import Base
 
 
 class PlatformType(str, enum.Enum):
-    GITHUB = "github"
-    GITLAB = "gitlab"
+    GITHUB = "GITHUB"
+    GITLAB = "GITLAB"
 
 
 class Project(Base):
@@ -25,7 +25,7 @@ class Project(Base):
     github_repo_name = Column(String, nullable=True)
     gitlab_project_id = Column(String, nullable=True)
     gitlab_token = Column(String, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

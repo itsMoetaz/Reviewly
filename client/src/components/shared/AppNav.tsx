@@ -84,7 +84,7 @@ export const AppNav = () => {
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface/50 transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold text-sm shadow-lg">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg">
                   {user?.avatar_url ? (
                     <img 
                       src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`} 

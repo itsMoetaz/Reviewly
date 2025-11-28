@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 
-export const GoogleCallbackPage = () => {
+ const GoogleCallbackPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { setAccessToken, fetchUser } = useAuthStore();
@@ -13,7 +13,7 @@ export const GoogleCallbackPage = () => {
     if (token) {
       setAccessToken(token);
       fetchUser().then(() => {
-        navigate("/dashboard");
+        navigate("/home");
       });
     } else {
       navigate("/login");
@@ -29,3 +29,6 @@ export const GoogleCallbackPage = () => {
     </div>
   );
 };
+
+export default GoogleCallbackPage;
+
