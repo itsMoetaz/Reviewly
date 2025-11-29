@@ -12,7 +12,6 @@ const platforms = [
     id: 'GITHUB' as Platform,
     name: 'GitHub',
     icon: Github,
-    description: 'Connect your GitHub repositories',
     bgColor: 'bg-gray-900 dark:bg-gray-800',
     hoverBg: 'hover:bg-gray-800 dark:hover:bg-gray-700',
     borderColor: 'border-gray-700',
@@ -24,7 +23,6 @@ const platforms = [
     id: 'GITLAB' as Platform,
     name: 'GitLab',
     icon: Gitlab,
-    description: 'Connect your GitLab projects',
     bgColor: 'bg-orange-600 dark:bg-orange-700',
     hoverBg: 'hover:bg-orange-500 dark:hover:bg-orange-600',
     borderColor: 'border-orange-500',
@@ -77,19 +75,6 @@ export const PlatformSelector = ({ onSelect }: PlatformSelectorProps) => {
             <span className={`text-lg font-semibold ${platform.iconColor} mb-1`}>
               {platform.name}
             </span>
-
-            {/* Description */}
-            <span className="text-xs text-white/70 text-center">
-              {platform.description}
-            </span>
-
-            {/* Hover Indicator */}
-            <motion.div
-              className="absolute inset-0 rounded-xl border-2 border-white/0 group-hover:border-white/20"
-              initial={false}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            />
           </motion.button>
         ))}
       </div>

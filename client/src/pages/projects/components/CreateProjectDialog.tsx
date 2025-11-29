@@ -60,17 +60,23 @@ export const CreateProjectDialog = ({ trigger }: CreateProjectDialogProps) => {
     setStep('form');
   }, []);
 
-  // Handle back to platform selection
+  // Handle back to platform selection (disabled during submission)
   const handleBack = useCallback(() => {
+    if (isSubmitting) return;
     setStep('select');
     setSelectedPlatform(null);
-  }, []);
+  }, [isSubmitting]);
 
-  // Handle GitHub form submission
-  const handleGitHubSubmit = useCallback(async (data: ProjectCreateGitHub) => {
+  // Generic submit handler for both platforms
+  const handleSubmit = useCallback(async (
+    data: ProjectCreateGitHub | ProjectCreateGitLab,
+    platform: Platform
+  ) => {
     setIsSubmitting(true);
     try {
-      const result = await projectService.createGitHub(data);
+      const result = platform === 'GITHUB'
+        ? await projectService.createGitHub(data as ProjectCreateGitHub)
+        : await projectService.createGitLab(data as ProjectCreateGitLab);
       
       if (result.success) {
         // Invalidate and refetch projects query before closing
@@ -99,38 +105,16 @@ export const CreateProjectDialog = ({ trigger }: CreateProjectDialogProps) => {
     }
   }, [queryClient, toast, handleOpenChange]);
 
-  // Handle GitLab form submission
-  const handleGitLabSubmit = useCallback(async (data: ProjectCreateGitLab) => {
-    setIsSubmitting(true);
-    try {
-      const result = await projectService.createGitLab(data);
-      
-      if (result.success) {
-        // Invalidate and refetch projects query before closing
-        await queryClient.invalidateQueries({ queryKey: ['projects'] });
-        
-        toast({
-          title: 'Project created!',
-          description: `${data.name} has been successfully connected.`,
-        });
-        handleOpenChange(false);
-      } else {
-        toast({
-          title: 'Failed to create project',
-          description: result.error || 'Something went wrong. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    } catch {
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [queryClient, toast, handleOpenChange]);
+  // Platform-specific submit handlers
+  const handleGitHubSubmit = useCallback(
+    (data: ProjectCreateGitHub) => handleSubmit(data, 'GITHUB'),
+    [handleSubmit]
+  );
+
+  const handleGitLabSubmit = useCallback(
+    (data: ProjectCreateGitLab) => handleSubmit(data, 'GITLAB'),
+    [handleSubmit]
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -177,12 +161,14 @@ export const CreateProjectDialog = ({ trigger }: CreateProjectDialogProps) => {
             )}
 
             {step === 'form' && selectedPlatform === 'GITLAB' && (
-              <GitLabForm
-                key="gitlab-form"
-                onBack={handleBack}
-                onSubmit={handleGitLabSubmit}
-                isSubmitting={isSubmitting}
-              />
+              <div className="max-h-[85vh] overflow-y-auto pr-1">
+                <GitLabForm
+                  key="gitlab-form"
+                  onBack={handleBack}
+                  onSubmit={handleGitLabSubmit}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
             )}
           </AnimatePresence>
         </Suspense>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Github, ArrowLeft, Loader2, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -43,6 +43,14 @@ export const GitHubForm = ({ onBack, onSubmit, isSubmitting }: GitHubFormProps) 
   const repoOwner = watch('github_repo_owner');
   const repoName = watch('github_repo_name');
 
+  // Memoize URL preview to avoid unnecessary re-renders
+  const urlPreview = useMemo(() => {
+    if (repoOwner && repoName) {
+      return `github.com/${repoOwner}/${repoName}`;
+    }
+    return null;
+  }, [repoOwner, repoName]);
+
   const handleFormSubmit = async (data: GitHubFormData) => {
     const payload: ProjectCreateGitHub = {
       name: data.name,
@@ -71,6 +79,7 @@ export const GitHubForm = ({ onBack, onSubmit, isSubmitting }: GitHubFormProps) 
           variant="ghost"
           size="icon"
           onClick={onBack}
+          disabled={isSubmitting}
           className="h-8 w-8"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -149,11 +158,11 @@ export const GitHubForm = ({ onBack, onSubmit, isSubmitting }: GitHubFormProps) 
         </div>
 
         {/* Repository URL Preview */}
-        {repoOwner && repoName && (
+        {urlPreview && (
           <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm">
             <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-muted-foreground">
-              github.com/{repoOwner}/{repoName}
+              {urlPreview}
             </span>
           </div>
         )}
@@ -168,7 +177,10 @@ export const GitHubForm = ({ onBack, onSubmit, isSubmitting }: GitHubFormProps) 
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
               {...register('github_token', {
                 required: 'GitHub token is required',
-                minLength: { value: 10, message: 'Token seems too short' },
+                pattern: {
+                  value: /^(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})$/,
+                  message: 'Please enter a valid GitHub token (starts with ghp_ or github_pat_)',
+                },
               })}
               className={`pr-10 ${errors.github_token ? 'border-red-500' : ''}`}
             />

@@ -66,6 +66,7 @@ export const GitLabForm = ({ onBack, onSubmit, isSubmitting }: GitLabFormProps) 
           variant="ghost"
           size="icon"
           onClick={onBack}
+          disabled={isSubmitting}
           className="h-8 w-8"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -145,8 +146,8 @@ export const GitLabForm = ({ onBack, onSubmit, isSubmitting }: GitLabFormProps) 
               {...register('repository_url', {
                 required: 'Repository URL is required',
                 pattern: {
-                  value: /^https?:\/\/.+/,
-                  message: 'Please enter a valid URL',
+                  value: /^https?:\/\/(gitlab\.com|gitlab\.[a-z]+\.[a-z]+)\/.+/i,
+                  message: 'Please enter a valid GitLab repository URL (e.g., https://gitlab.com/...)',
                 },
               })}
               className={`pl-10 ${errors.repository_url ? 'border-red-500' : ''}`}
@@ -167,7 +168,10 @@ export const GitLabForm = ({ onBack, onSubmit, isSubmitting }: GitLabFormProps) 
               placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
               {...register('gitlab_token', {
                 required: 'GitLab token is required',
-                minLength: { value: 10, message: 'Token seems too short' },
+                pattern: {
+                  value: /^glpat-[a-zA-Z0-9_-]{20,}$/,
+                  message: 'Please enter a valid GitLab token (starts with glpat-)',
+                },
               })}
               className={`pr-10 ${errors.gitlab_token ? 'border-red-500' : ''}`}
             />
