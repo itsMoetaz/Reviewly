@@ -25,6 +25,7 @@ import {
 import type { ProjectMemberResponse, ProjectMemberRole } from "@/core/interfaces/team.interface";
 import { ROLE_CONFIG } from "@/core/interfaces/team.interface";
 
+const API_URL = import.meta.env.VITE_API_URL;
 interface TeamTabProps {
   members: ProjectMemberResponse[];
   isLoading: boolean;
@@ -61,7 +62,9 @@ const MemberCard = memo(({
   onUpdateRole: (newRole: ProjectMemberRole) => void;
   onRemove: () => void;
 }) => {
-  const roleConfig = ROLE_CONFIG[member.role];
+  // Normalize role to uppercase to match ROLE_CONFIG keys
+  const normalizedRole = (member.role?.toString().toUpperCase() || 'REVIEWER') as ProjectMemberRole;
+  const roleConfig = ROLE_CONFIG[normalizedRole] || ROLE_CONFIG.REVIEWER;
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleRoleChange = async (newRole: ProjectMemberRole) => {
@@ -73,31 +76,50 @@ const MemberCard = memo(({
     }
   };
 
+  // Handle case where user data is not loaded
+  const user = member.user;
+  if (!user) {
+    return (
+      <div className="p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+            <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = user.full_name || user.username || 'Unknown User';
+  const avatarInitial = displayName.charAt(0).toUpperCase();
+
   return (
     <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors">
       <div className="flex items-start justify-between gap-4">
         {/* Member Info */}
         <div className="flex items-center gap-3 min-w-0">
-          {member.user.avatar_url ? (
+          {user.avatar_url ? (
             <img
-              src={member.user.avatar_url}
-              alt={member.user.username}
+              src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`} 
+              alt="User Avatar"
               className="w-10 h-10 rounded-full ring-2 ring-background"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-              {member.user.full_name.charAt(0).toUpperCase()}
+              {avatarInitial}
             </div>
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{member.user.full_name}</span>
+              <span className="font-medium truncate">{displayName}</span>
               {isCurrentUser && (
                 <Badge variant="outline" className="text-xs">You</Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground truncate">
-              @{member.user.username}
+              @{user.username || 'unknown'}
             </p>
           </div>
         </div>
@@ -108,11 +130,11 @@ const MemberCard = memo(({
             variant="secondary" 
             className={`gap-1 ${roleConfig.bgColor} ${roleConfig.color}`}
           >
-            {getRoleIcon(member.role)}
+            {getRoleIcon(normalizedRole)}
             {roleConfig.label}
           </Badge>
 
-          {canEdit && member.role !== "OWNER" && (
+          {canEdit && normalizedRole !== "OWNER" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isUpdating}>
@@ -126,14 +148,14 @@ const MemberCard = memo(({
               <DropdownMenuContent align="end">
                 <DropdownMenuItem 
                   onClick={() => handleRoleChange("ADMIN")}
-                  disabled={member.role === "ADMIN"}
+                  disabled={normalizedRole === "ADMIN"}
                 >
                   <Shield className="h-4 w-4 mr-2" />
                   Make Admin
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => handleRoleChange("REVIEWER")}
-                  disabled={member.role === "REVIEWER"}
+                  disabled={normalizedRole === "REVIEWER"}
                 >
                   <Edit2 className="h-4 w-4 mr-2" />
                   Make Reviewer
@@ -154,10 +176,12 @@ const MemberCard = memo(({
 
       {/* Additional Info */}
       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Mail className="h-3.5 w-3.5" />
-          {member.user.email}
-        </span>
+        {user.email && (
+          <span className="flex items-center gap-1">
+            <Mail className="h-3.5 w-3.5" />
+            {user.email}
+          </span>
+        )}
         <span className="flex items-center gap-1">
           <Clock className="h-3.5 w-3.5" />
           Joined {new Date(member.joined_at).toLocaleDateString('en-US', {

@@ -198,10 +198,20 @@ def get_project_members(db: Session, project_id: int, user_id: int) -> List[dict
             {
                 "id": member.id,
                 "user_id": member.user_id,
-                "email": user.email,
-                "username": user.username,
+                "project_id": project_id,
                 "role": member.role,
                 "joined_at": member.joined_at,
+                "user": (
+                    {
+                        "id": user.id,
+                        "email": user.email,
+                        "username": user.username,
+                        "full_name": user.full_name or user.username,
+                        "avatar_url": user.avatar_url,
+                    }
+                    if user
+                    else None
+                ),
             }
         )
 
