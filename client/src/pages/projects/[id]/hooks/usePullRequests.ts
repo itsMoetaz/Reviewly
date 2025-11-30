@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { repositoryService } from "@/core/services/repositoryService";
 import type { PullRequestsQueryParams } from "@/core/interfaces/repository.interface";
 
@@ -22,6 +22,9 @@ export const usePullRequests = (
 
   const [state, setState] = useState<PRState>(initialState);
   const [page, setPage] = useState(initialPage);
+  
+  // Track if we should force refresh (bypass cache)
+  const forceRefreshRef = useRef(false);
 
   const queryParams: PullRequestsQueryParams = {
     state,
@@ -38,7 +41,13 @@ export const usePullRequests = (
   } = useQuery({
     queryKey: ["project", projectId, "pull-requests", queryParams],
     queryFn: async () => {
-      const result = await repositoryService.getPullRequests(projectId, queryParams);
+      const params: PullRequestsQueryParams = { ...queryParams };
+      // Add refresh param if needed
+      if (forceRefreshRef.current) {
+        params.refresh = true;
+        forceRefreshRef.current = false; // Reset after use
+      }
+      const result = await repositoryService.getPullRequests(projectId, params);
       if (!result.success) {
         throw new Error(result.error);
       }
@@ -72,6 +81,12 @@ export const usePullRequests = (
     }
   }, [page]);
 
+  // Force refresh - bypasses cache
+  const forceRefetch = useCallback(async () => {
+    forceRefreshRef.current = true;
+    return refetch();
+  }, [refetch]);
+
   return {
     // Data
     pullRequests: data?.pull_requests || [],
@@ -98,5 +113,6 @@ export const usePullRequests = (
     goToNextPage,
     goToPreviousPage,
     refetch,
+    forceRefetch, // Use this to bypass server cache
   };
 };

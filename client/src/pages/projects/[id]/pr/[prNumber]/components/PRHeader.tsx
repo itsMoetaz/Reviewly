@@ -109,92 +109,96 @@ export const PRHeader = memo(({
 
   return (
     <div className="border-b border-border bg-card/50">
-      <div className="container mx-auto px-6 py-6 max-w-7xl">
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-          {/* Left: Back + PR Info */}
-          <div className="flex items-start gap-4 min-w-0 flex-1">
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-6 max-w-7xl">
+        <div className="flex flex-col gap-4">
+          {/* Top row: Back + State Icon + Title + Badge */}
+          <div className="flex items-start gap-2 sm:gap-4 min-w-0">
             {/* Back Button */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(`/projects/${projectId}`)}
-              className="shrink-0 mt-1"
+              className="shrink-0 h-8 w-8 sm:h-10 sm:w-10"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
 
             {/* State Icon */}
-            <div className={`p-3 rounded-xl shrink-0 ${stateConfig.className}`}>
-              <StateIcon className={`w-6 h-6 ${stateConfig.iconColor}`} />
+            <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl shrink-0 ${stateConfig.className}`}>
+              <StateIcon className={`w-4 h-4 sm:w-6 sm:h-6 ${stateConfig.iconColor}`} />
             </div>
 
             {/* PR Details */}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3 flex-wrap mb-1">
-                <h1 className="text-xl font-bold tracking-tight">
+              <div className="flex items-start sm:items-center gap-2 flex-wrap mb-1">
+                <h1 className="text-base sm:text-xl font-bold tracking-tight line-clamp-2 sm:line-clamp-1">
                   {prDetails.title}
                 </h1>
-                <Badge className={stateConfig.className}>
-                  {stateConfig.label}
-                </Badge>
-                {prDetails.work_in_progress && (
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-500/30">
-                    WIP
+                <div className="flex items-center gap-2">
+                  <Badge className={`text-xs ${stateConfig.className}`}>
+                    {stateConfig.label}
                   </Badge>
-                )}
+                  {prDetails.work_in_progress && (
+                    <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500/30">
+                      WIP
+                    </Badge>
+                  )}
+                </div>
               </div>
 
-              <p className="text-sm text-muted-foreground mb-3">
+              {/* Branch info - hidden on very small screens */}
+              <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
                 <span className="font-mono">#{prDetails.number}</span>
                 {" · "}
-                <code className="px-1.5 py-0.5 rounded bg-muted text-xs">
+                <code className="px-1 sm:px-1.5 py-0.5 rounded bg-muted text-[10px] sm:text-xs truncate max-w-[80px] sm:max-w-none inline-block align-middle">
                   {prDetails.source_branch}
                 </code>
                 {" → "}
-                <code className="px-1.5 py-0.5 rounded bg-muted text-xs">
+                <code className="px-1 sm:px-1.5 py-0.5 rounded bg-muted text-[10px] sm:text-xs truncate max-w-[80px] sm:max-w-none inline-block align-middle">
                   {prDetails.target_branch}
                 </code>
               </p>
 
               {/* Meta Info */}
-              <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                <span className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
+                <span className="flex items-center gap-1 sm:gap-1.5">
                   {prDetails.author.avatar_url ? (
                     <img 
                       src={prDetails.author.avatar_url} 
                       alt={prDetails.author.username}
-                      className="w-5 h-5 rounded-full"
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded-full"
                     />
                   ) : (
-                    <User className="w-4 h-4" />
+                    <User className="w-3 h-3 sm:w-4 sm:h-4" />
                   )}
-                  <span className="font-medium">{prDetails.author.username}</span>
+                  <span className="font-medium truncate max-w-[100px] sm:max-w-none">{prDetails.author.username}</span>
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  opened {timeAgo(prDetails.created_at)}
+                <span className="flex items-center gap-1 sm:gap-1.5">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">opened</span> {timeAgo(prDetails.created_at)}
                 </span>
                 {prDetails.merged_at && (
-                  <span className="flex items-center gap-1.5 text-purple-600">
-                    <GitMerge className="w-4 h-4" />
-                    merged {timeAgo(prDetails.merged_at)}
+                  <span className="flex items-center gap-1 sm:gap-1.5 text-purple-600">
+                    <GitMerge className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">merged</span> {timeAgo(prDetails.merged_at)}
                   </span>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2 ml-14 lg:ml-0 shrink-0">
-            {prUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={prUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  View on {platform === "GITLAB" ? "GitLab" : "GitHub"}
+          {/* Actions - Full width on mobile */}
+          {prUrl && (
+            <div className="flex items-center gap-2 ml-10 sm:ml-14 lg:ml-0 lg:absolute lg:right-6 lg:top-6">
+              <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm">
+                <a href={prUrl} target="_blank" rel="noopener noreferrer" className="gap-1.5 sm:gap-2">
+                  <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">View on {platform === "GITLAB" ? "GitLab" : "GitHub"}</span>
+                  <span className="xs:hidden">{platform === "GITLAB" ? "GitLab" : "GitHub"}</span>
                 </a>
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

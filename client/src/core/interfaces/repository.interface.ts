@@ -154,6 +154,7 @@ export interface PullRequestsQueryParams {
   state?: "open" | "opened" | "closed" | "merged" | "all";
   page?: number;
   per_page?: number;
+  refresh?: boolean;
 }
 
 export interface FileContentQueryParams {

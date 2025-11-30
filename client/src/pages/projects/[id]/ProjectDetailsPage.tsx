@@ -62,7 +62,8 @@ const ProjectDetailsPage = () => {
     setIsRefreshing(true);
     try {
       await refetchAll();
-      await pullRequestsHook.refetch();
+      // Use forceRefetch to bypass server cache
+      await pullRequestsHook.forceRefetch();
       toast({ title: "Data refreshed successfully" });
     } catch {
       toast({ title: "Failed to refresh data", variant: "destructive" });

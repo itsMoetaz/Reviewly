@@ -16,13 +16,24 @@ class UpdateMemberRoleRequest(BaseModel):
     role: ProjectMemberRole
 
 
+class ProjectMemberUser(BaseModel):
+    id: int
+    email: str
+    username: str
+    full_name: str
+    avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProjectMemberResponse(BaseModel):
     id: int
     user_id: int
-    email: str
-    username: str
+    project_id: int
     role: ProjectMemberRole
     joined_at: datetime
+    user: Optional[ProjectMemberUser] = None
 
     class Config:
         from_attributes = True
