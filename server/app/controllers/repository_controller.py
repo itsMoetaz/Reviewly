@@ -18,6 +18,7 @@ from app.schemas.repository import (
     PullRequestSummary,
 )
 from app.services import github_service, gitlab_service
+from app.services.cache_service import cache_service
 
 router = APIRouter(prefix="/projects", tags=["Repository"])
 
@@ -78,6 +79,7 @@ def get_pull_requests(
     state: str = Query("open", regex="^(open|opened|closed|merged|all)$"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    refresh: bool = Query(False, description="Bypass cache and fetch fresh data"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -85,6 +87,27 @@ def get_pull_requests(
     project = _get_project_with_permission(project_id, current_user, db)
 
     try:
+        # Clear cache if refresh requested
+        if refresh:
+            if project.platform == PlatformType.GITHUB:
+                cache_service.invalidate(
+                    "github:prs",
+                    owner=project.github_repo_owner,
+                    repo=project.github_repo_name,
+                    state=state if state in ["open", "closed", "all"] else "open",
+                    page=page,
+                    per_page=per_page,
+                )
+            elif project.platform == PlatformType.GITLAB:
+                cache_service.invalidate(
+                    "gitlab:mrs",
+                    project_id=project.gitlab_project_id,
+                    state="opened" if state == "open" else state,
+                    page=page,
+                    per_page=per_page,
+                )
+            security_logger.info(f"Cache invalidated for project {project_id} PRs (refresh requested)")
+
         if project.platform == PlatformType.GITHUB:
             # GitHub uses 'open', 'closed', 'all'
             github_state = state if state in ["open", "closed", "all"] else "open"
