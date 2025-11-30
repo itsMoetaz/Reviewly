@@ -9,10 +9,46 @@ interface ThemeState {
   setTheme: (theme: Theme) => void;
 }
 
+const applyTheme = (theme: Theme) => {
+  if (typeof document !== 'undefined') {
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+  }
+};
+
+const getInitialTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'light';
+  
+  // Try to get from localStorage first
+  try {
+    const stored = localStorage.getItem('theme-storage');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.state?.theme) {
+        return parsed.state.theme;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  
+  // Fall back to system preference
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  
+  return 'light';
+};
+
+// Apply theme immediately on load
+const initialTheme = getInitialTheme();
+applyTheme(initialTheme);
+
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      theme: (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+      theme: initialTheme,
       
       toggleTheme: () =>
         set((state) => {
@@ -29,30 +65,11 @@ export const useThemeStore = create<ThemeState>()(
     {
       name: 'theme-storage',
       onRehydrateStorage: () => (state) => {
-        if (state) {
+        // Apply theme after rehydration
+        if (state?.theme) {
           applyTheme(state.theme);
         }
       },
     }
   )
 );
-
-const applyTheme = (theme: Theme) => {
-  const root = document.documentElement;
-  root.classList.remove('light', 'dark');
-  root.classList.add(theme);
-};
-
-const stored = localStorage.getItem('theme-storage');
-if (stored) {
-  try {
-    const { state } = JSON.parse(stored);
-    applyTheme(state.theme || 'light');
-  } catch (e) {
-    applyTheme('light');
-  }
-} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-  applyTheme('dark');
-} else {
-  applyTheme('light');
-}

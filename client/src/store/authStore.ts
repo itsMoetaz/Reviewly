@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { authService } from "@/core/services/authService";
 import type { User, AuthState } from "@/core/interfaces/auth.interface";
 
@@ -12,6 +12,8 @@ interface AuthStore extends AuthState {
   initialize: () => Promise<void>;
   setUser: (user: User | null) => void;
   setAccessToken: (token: string | null) => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -20,7 +22,12 @@ export const useAuthStore = create<AuthStore>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoading: true, // Start as loading until hydrated
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
 
       login: async (email: string, password: string) => {
         set({ isLoading: true });
@@ -111,7 +118,7 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false,
             });
           }
-        } catch (error) {
+        } catch {
           set({
             user: null,
             accessToken: null,
@@ -126,10 +133,18 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHasHydrated(true);
+          // Initialize after hydration
+          state.initialize();
+        }
+      },
     }
   )
 );

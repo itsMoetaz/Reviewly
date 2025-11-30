@@ -74,7 +74,7 @@ export interface ReviewListResponse {
 export interface SeverityConfig {
   label: string;
   color: string;
-  bgColor: string;
+  bg: string;
   borderColor: string;
   icon: string;
 }
@@ -83,35 +83,35 @@ export const SEVERITY_CONFIG: Record<IssueSeverity, SeverityConfig> = {
   critical: {
     label: "Critical",
     color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-500/10",
+    bg: "bg-red-500/10",
     borderColor: "border-red-500/30",
     icon: "AlertOctagon",
   },
   high: {
     label: "High",
     color: "text-orange-600 dark:text-orange-400",
-    bgColor: "bg-orange-500/10",
+    bg: "bg-orange-500/10",
     borderColor: "border-orange-500/30",
     icon: "AlertTriangle",
   },
   medium: {
     label: "Medium",
     color: "text-yellow-600 dark:text-yellow-400",
-    bgColor: "bg-yellow-500/10",
+    bg: "bg-yellow-500/10",
     borderColor: "border-yellow-500/30",
     icon: "AlertCircle",
   },
   low: {
     label: "Low",
     color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-500/10",
+    bg: "bg-blue-500/10",
     borderColor: "border-blue-500/30",
     icon: "Info",
   },
   info: {
     label: "Info",
     color: "text-gray-600 dark:text-gray-400",
-    bgColor: "bg-gray-500/10",
+    bg: "bg-gray-500/10",
     borderColor: "border-gray-500/30",
     icon: "MessageCircle",
   },

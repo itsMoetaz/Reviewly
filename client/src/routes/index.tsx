@@ -6,6 +6,8 @@ import { authRoutes } from "./authRoutes";
 const LandingPage = lazy(() => import("@/pages/LandingPage"));
 const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage"));
+const ProjectDetailsPage = lazy(() => import("@/pages/projects/[id]/ProjectDetailsPage"));
+const PullRequestDetailPage = lazy(() => import("@/pages/projects/[id]/pr/[prNumber]/PullRequestDetailPage"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -40,6 +42,26 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <Suspense fallback={<PageLoader />}>
           <ProfilePage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/projects/:id",
+    element: (
+      <ProtectedRoute>
+        <Suspense fallback={<PageLoader />}>
+          <ProjectDetailsPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/projects/:id/pr/:prNumber",
+    element: (
+      <ProtectedRoute>
+        <Suspense fallback={<PageLoader />}>
+          <PullRequestDetailPage />
         </Suspense>
       </ProtectedRoute>
     ),

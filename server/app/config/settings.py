@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # ---------- Groq AI Configuration ----------
     GROQ_API_KEYS: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     AI_MAX_TOKENS: int = 4000
     AI_TIMEOUT: int = 120
     MAX_DIFF_SIZE: int = 20000
