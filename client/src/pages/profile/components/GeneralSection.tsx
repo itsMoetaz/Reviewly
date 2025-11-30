@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
-export const GeneralSection = () => {
+ const GeneralSection = () => {
   const { user, fetchUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -123,3 +123,6 @@ export const GeneralSection = () => {
     </div>
   );
 };
+
+export default GeneralSection;
+

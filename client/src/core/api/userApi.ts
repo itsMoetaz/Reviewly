@@ -1,15 +1,15 @@
 import axiosInstance from "../../utils/axiosConfig";
 
 export const userApi = {
-  getProfile: async () => {
+  getProfile: () => {
     return axiosInstance.get("/users/me");
   },
 
-  updateProfile: async (data: { full_name?: string; username?: string; email?: string; password?: string }) => {
+  updateProfile: (data: { full_name?: string; username?: string; email?: string; password?: string }) => {
     return axiosInstance.put("/users/me", data);
   },
 
-  uploadAvatar: async (file: File) => {
+  uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     return axiosInstance.post("/users/me/avatar", formData, {
@@ -19,11 +19,11 @@ export const userApi = {
     });
   },
 
-  deleteAvatar: async () => {
+  deleteAvatar: () => {
     return axiosInstance.delete("/users/me/avatar");
   },
 
-  deleteAccount: async () => {
+  deleteAccount: () => {
     return axiosInstance.delete("/users/me");
   },
 };

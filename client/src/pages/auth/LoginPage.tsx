@@ -1,7 +1,7 @@
 import { AuthLayout } from "./components/AuthLayout";
 import { LoginForm } from "./components/LoginForm";
 
-export const LoginPage = () => {
+const LoginPage = () => {
   return (
     <AuthLayout
       title="Welcome back"
@@ -10,4 +10,6 @@ export const LoginPage = () => {
       <LoginForm />
     </AuthLayout>
   );
-};
+}
+
+export default LoginPage;

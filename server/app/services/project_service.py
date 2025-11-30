@@ -55,6 +55,19 @@ def create_github_project(db: Session, project_data: ProjectCreateGitHub, user_i
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    # Add creator as project owner
+    project_member = ProjectMember(
+        project_id=project.id,
+        user_id=user_id,
+        role=ProjectMemberRole.OWNER,
+    )
+    db.add(project_member)
+    db.commit()
+
+    # Clear user projects cache
+    redis_cache.clear_pattern(f"user_projects:{user_id}:*")
+
     return project
 
 
@@ -75,6 +88,19 @@ def create_gitlab_project(db: Session, project_data: ProjectCreateGitLab, user_i
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    # Add creator as project owner
+    project_member = ProjectMember(
+        project_id=project.id,
+        user_id=user_id,
+        role=ProjectMemberRole.OWNER,
+    )
+    db.add(project_member)
+    db.commit()
+
+    # Clear user projects cache
+    redis_cache.clear_pattern(f"user_projects:{user_id}:*")
+
     return project
 
 

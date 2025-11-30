@@ -9,7 +9,7 @@ interface ProfileHeaderProps {
   onAvatarUpdate?: () => void;
 }
 
-export const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
+ const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
   const { user, fetchUser } = useAuthStore();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,3 +146,5 @@ export const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
     </div>
   );
 };
+
+export default ProfileHeader;

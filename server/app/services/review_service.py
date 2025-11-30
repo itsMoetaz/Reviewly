@@ -21,6 +21,9 @@ async def create_and_process_review(
 
     subscription_service.check_ai_review_quota(db, user_id)
 
+    # Expire all cached objects to ensure fresh read from database
+    db.expire_all()
+
     existing = (
         db.query(AIReview)
         .filter(AIReview.project_id == project_id, AIReview.pr_number == pr_number, AIReview.requested_by == user_id)
@@ -71,7 +74,9 @@ async def _process_review(db: Session, review: AIReview, project, include_contex
 
         security_logger.info(f"Processing review #{review.id}")
 
-        if project.platform.value == "github":
+        if project.platform.value == "GITHUB":
+            if not project.github_token or not project.github_repo_owner or not project.github_repo_name:
+                raise Exception("GitHub project configuration is incomplete. Please check repository settings.")
             pr_details = github_service.fetch_pull_request_details(
                 token=project.github_token,
                 owner=project.github_repo_owner,
@@ -79,6 +84,8 @@ async def _process_review(db: Session, review: AIReview, project, include_contex
                 pr_number=review.pr_number,
             )
         else:
+            if not project.gitlab_token or not project.gitlab_project_id:
+                raise Exception("GitLab project configuration is incomplete. Please check repository settings.")
             pr_details = gitlab_service.fetch_merge_request_details(
                 token=project.gitlab_token, project_id=project.gitlab_project_id, mr_iid=review.pr_number
             )

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clock, AlertTriangle, GitPullRequest, Zap } from 'lucide-react';
 import Marquee from '../ui/marquee';
 

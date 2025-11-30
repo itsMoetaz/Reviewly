@@ -51,7 +51,7 @@ def create_gitlab_project(
 def get_user_projects(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    platform: Optional[str] = Query(None, regex="^(github|gitlab|all)$"),
+    platform: Optional[str] = Query(None, regex="^(GITHUB|GITLAB|all)$"),
     is_active: Optional[bool] = Query(None),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
