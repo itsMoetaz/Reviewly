@@ -1,5 +1,6 @@
 from app.models.ai_review import AIReview
 from app.models.comment_reaction import CommentReaction
+from app.models.password_reset import PasswordResetCode
 from app.models.pr_comment import PRComment
 from app.models.project import PlatformType, Project
 from app.models.project_invitation import ProjectInvitation, ProjectInvitationRole, ProjectInvitationStatus
@@ -22,4 +23,5 @@ __all__ = [
     "ProjectInvitationRole",
     "ProjectInvitationStatus",
     "UsageTracking",
+    "PasswordResetCode",
 ]

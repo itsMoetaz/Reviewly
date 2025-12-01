@@ -10,9 +10,16 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.core.logging_config import security_logger
 from app.core.security import create_access_token, create_refresh_token, decode_access_token
 from app.models.user import User
+from app.schemas.password import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    PasswordResetResponse,
+    ResetPasswordRequest,
+    VerifyCodeRequest,
+)
 from app.schemas.token import Token
 from app.schemas.user import UserCreate, UserResponse
-from app.services import google_oauth_service
+from app.services import google_oauth_service, password_service
 from app.services.auth_service import authenticate_user, create_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -182,3 +189,82 @@ def google_callback(code: str, request: Request, response: Response, db: Session
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to complete Google OAuth login"
         )
+
+
+# ==================== Password Reset Endpoints ====================
+
+
+@router.post("/forgot-password", response_model=PasswordResetResponse)
+@limiter.limit("3/minute")
+def forgot_password(
+    request: Request,
+    data: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Request a password reset code.
+    Sends a 6-digit code to the user's email.
+    """
+    client_ip = request.client.host
+    security_logger.info(f"Password reset requested from IP: {client_ip} for email: {data.email}")
+
+    password_service.request_password_reset(db, data.email)
+
+    # Always return success to prevent email enumeration
+    return PasswordResetResponse(
+        message="If an account exists with this email, you will receive a reset code shortly.", success=True
+    )
+
+
+@router.post("/verify-reset-code", response_model=PasswordResetResponse)
+@limiter.limit("5/minute")
+def verify_reset_code(
+    request: Request,
+    data: VerifyCodeRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Verify a password reset code.
+    """
+    client_ip = request.client.host
+    security_logger.info(f"Reset code verification from IP: {client_ip} for email: {data.email}")
+
+    reset_code = password_service.verify_reset_code(db, data.email, data.code)
+
+    if not reset_code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset code")
+
+    return PasswordResetResponse(message="Code verified successfully", success=True)
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse)
+@limiter.limit("3/minute")
+def reset_password(
+    request: Request,
+    data: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Reset password using a valid reset code.
+    """
+    client_ip = request.client.host
+    security_logger.info(f"Password reset attempt from IP: {client_ip} for email: {data.email}")
+
+    password_service.reset_password(db, data.email, data.code, data.new_password)
+
+    return PasswordResetResponse(message="Password reset successfully", success=True)
+
+
+@router.post("/change-password", response_model=PasswordResetResponse)
+def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Change password for authenticated user.
+    Requires current password verification.
+    """
+    password_service.change_password(db, current_user, data.current_password, data.new_password)
+
+    return PasswordResetResponse(message="Password changed successfully", success=True)

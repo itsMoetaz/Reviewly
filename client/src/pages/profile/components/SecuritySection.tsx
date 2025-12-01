@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Lock, Eye, EyeOff, Loader2, Check, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { userService } from '@/core/services/userService';
+import { authApi } from '@/core/api/authApi';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
  const SecuritySection = () => {
-  const { fetchUser } = useAuthStore();
+  const { fetchUser, accessToken } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -29,6 +29,11 @@ import { Button } from '@/components/ui/button';
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!formData.currentPassword) {
+      setError('Current password is required');
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match');
       return;
@@ -42,19 +47,18 @@ import { Button } from '@/components/ui/button';
     setIsLoading(true);
 
     try {
-      const result = await userService.updateProfile({ password: formData.newPassword });
-
-      if (result.success) {
-        await fetchUser();
-        setIsSaved(true);
-        setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setTimeout(() => setIsSaved(false), 3000);
-      } else {
-        setError(result.error || 'Failed to update password');
-      }
-    } catch (err) {
+      await authApi.changePassword(accessToken!, formData.currentPassword, formData.newPassword);
+      await fetchUser();
+      setIsSaved(true);
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err: any) {
       console.error('Error updating password:', err);
-      setError('Failed to update password');
+      if (err.response?.status === 400) {
+        setError(err.response?.data?.detail || 'Current password is incorrect');
+      } else {
+        setError('Failed to update password');
+      }
     } finally {
       setIsLoading(false);
     }

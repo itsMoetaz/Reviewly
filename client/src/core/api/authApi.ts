@@ -33,4 +33,29 @@ export const authApi = {
   getGoogleLoginUrl: () => {
     return `${API_URL}/auth/google/login`;
   },
+
+  // Password Reset APIs
+  forgotPassword: async (email: string) => {
+    return axios.post(`${API_URL}/auth/forgot-password`, { email });
+  },
+
+  verifyResetCode: async (email: string, code: string) => {
+    return axios.post(`${API_URL}/auth/verify-reset-code`, { email, code });
+  },
+
+  resetPassword: async (email: string, code: string, newPassword: string) => {
+    return axios.post(`${API_URL}/auth/reset-password`, { 
+      email, 
+      code, 
+      new_password: newPassword 
+    });
+  },
+
+  changePassword: async (token: string, currentPassword: string, newPassword: string) => {
+    return axios.post(
+      `${API_URL}/auth/change-password`, 
+      { current_password: currentPassword, new_password: newPassword },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  },
 };
