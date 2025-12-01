@@ -54,6 +54,30 @@ async def create_pr_comment(db: Session, project_id: int, pr_number: int, user_i
     return comment
 
 
+def _build_reactions_summary(comment: PRComment, user_id: int) -> dict:
+    """Build reactions summary from loaded reactions for a comment."""
+    counts = {
+        "thumbs_up": 0,
+        "thumbs_down": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0,
+        "party": 0,
+    }
+    user_reactions = []
+
+    for reaction in comment.reactions:
+        if reaction.reaction_type in counts:
+            counts[reaction.reaction_type] += 1
+        if reaction.user_id == user_id:
+            user_reactions.append(reaction.reaction_type)
+
+    return {
+        **counts,
+        "user_reactions": user_reactions,
+    }
+
+
 def get_pr_comments(
     db: Session, project_id: int, pr_number: int, user_id: int, page: int = 1, per_page: int = 20
 ) -> dict:
@@ -81,7 +105,34 @@ def get_pr_comments(
 
     total_pages = (total + per_page - 1) // per_page
 
-    return {"total": total, "page": page, "per_page": per_page, "total_pages": total_pages, "comments": comments}
+    # Build response with reactions_summary for each comment
+    comments_with_reactions = []
+    for comment in comments:
+        comment_dict = {
+            "id": comment.id,
+            "project_id": comment.project_id,
+            "pr_number": comment.pr_number,
+            "user_id": comment.user_id,
+            "comment_text": comment.comment_text,
+            "github_comment_id": comment.github_comment_id,
+            "gitlab_note_id": comment.gitlab_note_id,
+            "is_deleted": comment.is_deleted,
+            "file_path": comment.file_path,
+            "line_number": comment.line_number,
+            "line_end": comment.line_end,
+            "created_at": comment.created_at,
+            "updated_at": comment.updated_at,
+            "reactions_summary": _build_reactions_summary(comment, user_id),
+        }
+        comments_with_reactions.append(comment_dict)
+
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+        "comments": comments_with_reactions,
+    }
 
 
 async def update_pr_comment(db: Session, comment_id: int, user_id: int, new_comment_text: str) -> PRComment:
@@ -95,14 +146,28 @@ async def update_pr_comment(db: Session, comment_id: int, user_id: int, new_comm
 
     project = project_service.get_project_by_id(db, comment.project_id, user_id=user_id)
 
+    # Check if this is an inline comment (has file_path) or a general comment
+    is_inline_comment = comment.file_path is not None
+
     if project.platform == PlatformType.GITHUB:
-        github_service.update_pr_comment(
-            token=project.github_token,
-            owner=project.github_repo_owner,
-            repo=project.github_repo_name,
-            comment_id=comment.github_comment_id,
-            new_body=new_comment_text,
-        )
+        if is_inline_comment:
+            # Use PR review comment endpoint for inline comments
+            github_service.update_pr_review_comment(
+                token=project.github_token,
+                owner=project.github_repo_owner,
+                repo=project.github_repo_name,
+                comment_id=comment.github_comment_id,
+                new_body=new_comment_text,
+            )
+        else:
+            # Use issue comment endpoint for general comments
+            github_service.update_pr_comment(
+                token=project.github_token,
+                owner=project.github_repo_owner,
+                repo=project.github_repo_name,
+                comment_id=comment.github_comment_id,
+                new_body=new_comment_text,
+            )
     else:
         gitlab_service.update_mr_comment(
             token=project.gitlab_token,
@@ -132,13 +197,26 @@ async def delete_pr_comment(db: Session, comment_id: int, user_id: int) -> None:
 
     project = project_service.get_project_by_id(db, comment.project_id, user_id=user_id)
 
+    # Check if this is an inline comment (has file_path) or a general comment
+    is_inline_comment = comment.file_path is not None
+
     if project.platform == PlatformType.GITHUB:
-        github_service.delete_pr_comment(
-            token=project.github_token,
-            owner=project.github_repo_owner,
-            repo=project.github_repo_name,
-            comment_id=comment.github_comment_id,
-        )
+        if is_inline_comment:
+            # Use PR review comment endpoint for inline comments
+            github_service.delete_pr_review_comment(
+                token=project.github_token,
+                owner=project.github_repo_owner,
+                repo=project.github_repo_name,
+                comment_id=comment.github_comment_id,
+            )
+        else:
+            # Use issue comment endpoint for general comments
+            github_service.delete_pr_comment(
+                token=project.github_token,
+                owner=project.github_repo_owner,
+                repo=project.github_repo_name,
+                comment_id=comment.github_comment_id,
+            )
     else:
         gitlab_service.delete_mr_comment(
             token=project.gitlab_token,

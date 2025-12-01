@@ -6,7 +6,7 @@ import type {
   CommentsQueryParams,
 } from "../interfaces/comment.interface";
 
-const BASE_PATH = "/comments";
+const BASE_PATH = "/pr-comments";
 
 export const commentApi = {
   

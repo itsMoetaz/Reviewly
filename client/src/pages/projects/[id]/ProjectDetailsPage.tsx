@@ -5,13 +5,14 @@ import { AppLayout } from "@/components/layouts/AppLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { teamService } from "@/core/services/teamService";
 import { useToast } from "@/components/hooks/use-toast";
 
 // Components
 import { ProjectHeader } from "./components/ProjectHeader";
 import { ProjectTabs, type ProjectTab } from "./components/ProjectTabs";
+import { InviteMemberDialog } from "./components/InviteMemberDialog";
 
 // Tabs
 import { OverviewTab } from "./tabs/OverviewTab";
@@ -36,6 +37,8 @@ const ProjectDetailsPage = () => {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<ProjectTab>("overview");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
 
   // Data hooks
   const {
@@ -54,8 +57,26 @@ const ProjectDetailsPage = () => {
 
   // Determine user's role in this project
   const currentMember = members.find(m => m.user_id === user?.id);
-  const currentUserRole = currentMember?.role;
+  const currentUserRole = currentMember?.role?.toString().toUpperCase() as ProjectMemberRole | undefined;
   const isOwner = currentUserRole === "OWNER" || project?.user_id === user?.id;
+  const canManageMembers = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
+
+  // Fetch pending invitations (only if user can manage members)
+  const { 
+    data: pendingInvitations = [], 
+    isLoading: isInvitationsLoading,
+    refetch: refetchInvitations 
+  } = useQuery({
+    queryKey: ["project", projectId, "invitations"],
+    queryFn: async () => {
+      const result = await teamService.getInvitations(projectId);
+      if (result.success) {
+        return result.data || [];
+      }
+      return [];
+    },
+    enabled: !!projectId && canManageMembers,
+  });
 
   // Handlers
   const handleRefresh = useCallback(async () => {
@@ -77,16 +98,49 @@ const ProjectDetailsPage = () => {
   }, []);
 
   const handleInviteMember = useCallback(() => {
-    // TODO: Open invite member dialog
-    toast({ title: "Invite member dialog coming soon!" });
-  }, [toast]);
+    setIsInviteDialogOpen(true);
+  }, []);
+
+  const handleSendInvitation = useCallback(async (email: string, role: Exclude<ProjectMemberRole, "OWNER">): Promise<boolean> => {
+    setIsInviting(true);
+    try {
+      // Convert role to lowercase for the backend (ProjectInvitationRole uses lowercase)
+      const lowercaseRole = role.toLowerCase() as Exclude<ProjectMemberRole, "OWNER">;
+      const result = await teamService.inviteMember(projectId, email, lowercaseRole);
+      if (result.success) {
+        toast({ title: "Invitation sent!", description: `An invitation has been sent to ${email}` });
+        refetchInvitations();
+        return true;
+      } else {
+        toast({ title: result.error || "Failed to send invitation", variant: "destructive" });
+        return false;
+      }
+    } catch {
+      toast({ title: "Failed to send invitation", variant: "destructive" });
+      return false;
+    } finally {
+      setIsInviting(false);
+    }
+  }, [projectId, toast, refetchInvitations]);
+
+  const handleCancelInvitation = useCallback(async (invitationId: number) => {
+    const result = await teamService.cancelInvitation(projectId, invitationId);
+    if (result.success) {
+      toast({ title: "Invitation cancelled" });
+      refetchInvitations();
+    } else {
+      toast({ title: result.error || "Failed to cancel invitation", variant: "destructive" });
+    }
+  }, [projectId, toast, refetchInvitations]);
 
   const handleUpdateRole = useCallback(async (
     _memberId: number, 
     userId: number, 
     newRole: ProjectMemberRole
   ) => {
-    const result = await teamService.updateMemberRole(projectId, userId, newRole);
+    // Convert role to lowercase for the backend (ProjectMemberRole enum uses lowercase values)
+    const lowercaseRole = newRole.toLowerCase() as ProjectMemberRole;
+    const result = await teamService.updateMemberRole(projectId, userId, lowercaseRole);
     if (result.success) {
       toast({ title: "Member role updated" });
       queryClient.invalidateQueries({ queryKey: ["project", projectId, "members"] });
@@ -212,12 +266,15 @@ const ProjectDetailsPage = () => {
         {activeTab === "team" && (
           <TeamTab
             members={members}
+            pendingInvitations={pendingInvitations}
             isLoading={isMembersLoading}
+            isInvitationsLoading={isInvitationsLoading}
             currentUserId={user?.id || 0}
             currentUserRole={currentUserRole}
             onInviteMember={handleInviteMember}
             onUpdateRole={handleUpdateRole}
             onRemoveMember={handleRemoveMember}
+            onCancelInvitation={handleCancelInvitation}
           />
         )}
 
@@ -230,6 +287,14 @@ const ProjectDetailsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Invite Member Dialog */}
+      <InviteMemberDialog
+        open={isInviteDialogOpen}
+        onOpenChange={setIsInviteDialogOpen}
+        onInvite={handleSendInvitation}
+        isLoading={isInviting}
+      />
     </AppLayout>
   );
 };

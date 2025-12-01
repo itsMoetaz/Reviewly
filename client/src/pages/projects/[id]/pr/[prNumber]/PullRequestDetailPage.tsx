@@ -9,16 +9,17 @@ import { AppLayout } from "@/components/layouts/AppLayout";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FileChange } from "@/core/interfaces/repository.interface";
+import { useAuthStore } from "@/store/authStore";
 
 // Hooks
 import { useProjectDetails } from "../../hooks/useProjectDetails";
-import { usePRDetails } from "./hooks";
-import { useAIReview } from "./hooks";
+import { usePRDetails, useAIReview, useComments } from "./hooks";
 
 // Eager-loaded components (above the fold)
 import { PRHeader } from "./components/PRHeader";
 import { PRStats } from "./components/PRStats";
 import { FileTree } from "./components/FileTree";
+import { InlineCommentDialog } from "./components/InlineCommentDialog";
 
 // Lazy-loaded components
 const DiffViewer = lazy(() =>
@@ -48,13 +49,27 @@ const ResizeHandle = ({ className = "" }) => (
 // Mobile tab type
 type MobileTab = "files" | "diff" | "review";
 
+// Inline comment dialog state
+interface InlineCommentState {
+  isOpen: boolean;
+  lineNumber: number;
+  filePath: string;
+  lineContent?: string;
+}
+
 export default function PullRequestDetailPage() {
   const { id: projectId, prNumber } = useParams<{ id: string; prNumber: string }>();
   const { toast } = useToast();
+  const { user } = useAuthStore();
 
   // State
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>("files");
+  const [commentDialogState, setCommentDialogState] = useState<InlineCommentState>({
+    isOpen: false,
+    lineNumber: 0,
+    filePath: "",
+  });
 
   // Data fetching
   const { 
@@ -78,6 +93,29 @@ export default function PullRequestDetailPage() {
     isDeletingReview,
     isLoadingReviews,
   } = useAIReview(Number(projectId), Number(prNumber));
+
+  // Get the latest commit SHA for inline comments
+  const latestCommitSha = useMemo(() => {
+    if (prDetails?.commits && prDetails.commits.length > 0) {
+      return prDetails.commits[prDetails.commits.length - 1].sha;
+    }
+    return undefined;
+  }, [prDetails?.commits]);
+
+  // Comments hook
+  const {
+    getCommentsForLine,
+    getCommentCount,
+    createInlineComment,
+    updateComment,
+    deleteComment,
+    toggleReaction,
+    isCreating: isCreatingComment,
+  } = useComments({
+    projectId: Number(projectId),
+    prNumber: Number(prNumber),
+    commitSha: latestCommitSha,
+  });
 
   // Get files from PR details
   const files: FileChange[] = prDetails?.files || [];
@@ -149,16 +187,78 @@ export default function PullRequestDetailPage() {
     []
   );
 
+  // Inline comment handlers
   const handleAddComment = useCallback(
-    (_lineNumber: number, _filePath: string) => {
-      // TODO: Implement comment dialog
-      toast({
-        title: "Coming Soon",
-        description: "Inline comments will be available soon!",
+    (lineNumber: number, filePath: string, lineContent?: string) => {
+      if (!latestCommitSha) {
+        toast({
+          variant: "destructive",
+          title: "Cannot Add Comment",
+          description: "No commit SHA available for this pull request.",
+        });
+        return;
+      }
+      setCommentDialogState({
+        isOpen: true,
+        lineNumber,
+        filePath,
+        lineContent,
       });
     },
-    [toast]
+    [latestCommitSha, toast]
   );
+
+  const handleCloseCommentDialog = useCallback(() => {
+    setCommentDialogState({
+      isOpen: false,
+      lineNumber: 0,
+      filePath: "",
+    });
+  }, []);
+
+  const handleSubmitComment = useCallback(async (commentText: string): Promise<boolean> => {
+    const { filePath, lineNumber } = commentDialogState;
+    const success = await createInlineComment(filePath, lineNumber, commentText);
+    
+    if (success) {
+      toast({
+        title: "Comment Posted",
+        description: "Your comment has been added to the pull request.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Failed to Post Comment",
+        description: "Could not add your comment. Please try again.",
+      });
+    }
+    
+    return success;
+  }, [commentDialogState, createInlineComment, toast]);
+
+  const handleEditComment = useCallback(async (commentId: number, newText: string): Promise<boolean> => {
+    const success = await updateComment(commentId, newText);
+    if (success) {
+      toast({ title: "Comment updated" });
+    } else {
+      toast({ variant: "destructive", title: "Failed to update comment" });
+    }
+    return success;
+  }, [updateComment, toast]);
+
+  const handleDeleteComment = useCallback(async (commentId: number): Promise<boolean> => {
+    const success = await deleteComment(commentId);
+    if (success) {
+      toast({ title: "Comment deleted" });
+    } else {
+      toast({ variant: "destructive", title: "Failed to delete comment" });
+    }
+    return success;
+  }, [deleteComment, toast]);
+
+  const handleReaction = useCallback(async (commentId: number, reactionType: string) => {
+    await toggleReaction(commentId, reactionType as import("@/core/interfaces/comment.interface").ReactionType);
+  }, [toggleReaction]);
 
   // Loading state
   const isLoading = isProjectLoading || isPRLoading;
@@ -249,6 +349,12 @@ export default function PullRequestDetailPage() {
                           issues={selectedReview?.issues}
                           onAddComment={handleAddComment}
                           isLoading={isLoading}
+                          getCommentsForLine={getCommentsForLine}
+                          getCommentCount={getCommentCount}
+                          currentUserId={user?.id}
+                          onEditComment={handleEditComment}
+                          onDeleteComment={handleDeleteComment}
+                          onReaction={handleReaction}
                         />
                       </div>
                     </Suspense>
@@ -310,6 +416,12 @@ export default function PullRequestDetailPage() {
                           issues={selectedReview?.issues}
                           onAddComment={handleAddComment}
                           isLoading={isLoading}
+                          getCommentsForLine={getCommentsForLine}
+                          getCommentCount={getCommentCount}
+                          currentUserId={user?.id}
+                          onEditComment={handleEditComment}
+                          onDeleteComment={handleDeleteComment}
+                          onReaction={handleReaction}
                         />
                       </div>
                     </Suspense>
@@ -344,6 +456,17 @@ export default function PullRequestDetailPage() {
             </PanelGroup>
           </div>
         </motion.div>
+
+        {/* Inline Comment Dialog */}
+        <InlineCommentDialog
+          isOpen={commentDialogState.isOpen}
+          onClose={handleCloseCommentDialog}
+          onSubmit={handleSubmitComment}
+          filePath={commentDialogState.filePath}
+          lineNumber={commentDialogState.lineNumber}
+          lineContent={commentDialogState.lineContent}
+          isSubmitting={isCreatingComment}
+        />
       </div>
     </AppLayout>
   );

@@ -27,6 +27,10 @@ export const teamApi = {
   cancelInvitation: (projectId: number, invitationId: number) =>
     axiosInstance.delete(`${BASE_PATH}/${projectId}/invitations/${invitationId}`),
 
+  // Get invitations for the current user
+  getMyInvitations: () =>
+    axiosInstance.get(`${BASE_PATH}/invitations/my`),
+
   acceptInvitation: (data: AcceptInvitationRequest) =>
     axiosInstance.post(`${BASE_PATH}/invitations/accept`, data),
 

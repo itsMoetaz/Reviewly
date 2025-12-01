@@ -57,7 +57,7 @@ class EmailService:
         project_name: str,
         role: str,
         token: str,
-        frontend_url: str = "http://localhost:3000",
+        frontend_url: str = "http://localhost:5173",
         expires_days: int = 7,
     ) -> bool:
         """Send team invitation email"""

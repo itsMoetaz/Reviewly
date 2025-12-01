@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_active_user, get_db
 from app.core.logging_config import security_logger
 from app.models.project import PlatformType, Project
+from app.models.project_member import ProjectMember
 from app.models.user import User, UserRole
 from app.schemas.repository import (
     Branch,
@@ -33,7 +34,15 @@ def _get_project_with_permission(project_id: int, current_user: User, db: Sessio
     is_owner = project.user_id == current_user.id
     is_privileged = current_user.role in [UserRole.ADMIN, UserRole.SUPERUSER]
 
-    if not (is_owner or is_privileged):
+    # Check if user is a team member of the project
+    is_team_member = (
+        db.query(ProjectMember)
+        .filter(ProjectMember.project_id == project_id, ProjectMember.user_id == current_user.id)
+        .first()
+        is not None
+    )
+
+    if not (is_owner or is_privileged or is_team_member):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You don't have permission to access this project"
         )

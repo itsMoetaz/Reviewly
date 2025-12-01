@@ -79,6 +79,8 @@ export interface ProjectInvitationResponse {
   invited_by: number;
   invited_at: string;
   expires_at: string;
+  token?: string;
+  project_name?: string;
   inviter_name?: string;
 }
 

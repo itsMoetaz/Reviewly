@@ -8,6 +8,7 @@ const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage"));
 const ProjectDetailsPage = lazy(() => import("@/pages/projects/[id]/ProjectDetailsPage"));
 const PullRequestDetailPage = lazy(() => import("@/pages/projects/[id]/pr/[prNumber]/PullRequestDetailPage"));
+const AcceptInvitationPage = lazy(() => import("@/pages/projects/AcceptInvitationPage"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -64,6 +65,14 @@ export const router = createBrowserRouter([
           <PullRequestDetailPage />
         </Suspense>
       </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/invitations/accept",
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <AcceptInvitationPage />
+      </Suspense>
     ),
   },
   ...authRoutes,
