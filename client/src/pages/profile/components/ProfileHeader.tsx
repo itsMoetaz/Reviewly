@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Crown, Zap, Sparkles, Star } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { userService } from '@/core/services/userService';
 
@@ -9,10 +9,186 @@ interface ProfileHeaderProps {
   onAvatarUpdate?: () => void;
 }
 
- const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
+// Animated Plan Badge for Profile
+const ProfilePlanBadge = ({ tier }: { tier: string }) => {
+  const normalizedTier = tier?.toUpperCase() || "FREE";
+  
+  if (normalizedTier === "PRO") {
+    return (
+      <div className="relative group inline-flex">
+        {/* Outer animated glow */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 rounded-full blur-md opacity-75 group-hover:opacity-100 animate-pulse" />
+        
+        {/* Badge container */}
+        <div className="relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-amber-950 font-bold text-xs shadow-xl shadow-amber-500/40">
+          <Crown className="w-4 h-4 animate-bounce" style={{ animationDuration: '2s' }} />
+          <span className="tracking-wider">PRO PLAN</span>
+          
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-shimmer" />
+          </div>
+        </div>
+        
+        {/* Floating particles */}
+        <Star className="absolute -top-2 -right-2 w-3 h-3 text-yellow-300 animate-ping" style={{ animationDuration: '2s' }} />
+        <Star className="absolute -bottom-1 -left-2 w-2.5 h-2.5 text-yellow-300 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.7s' }} />
+        <Sparkles className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 text-amber-300 animate-pulse" />
+      </div>
+    );
+  }
+  
+  if (normalizedTier === "PLUS") {
+    return (
+      <div className="relative group inline-flex">
+        {/* Glow effect */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 rounded-full blur opacity-60 group-hover:opacity-100 transition-opacity animate-pulse" style={{ animationDuration: '3s' }} />
+        
+        {/* Badge */}
+        <div className="relative flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-500 to-purple-600 text-white font-bold text-xs shadow-lg shadow-purple-500/30">
+          <Zap className="w-4 h-4 animate-pulse" />
+          <span className="tracking-wider">PLUS PLAN</span>
+          
+          {/* Animated border */}
+          <div className="absolute inset-0 rounded-full border-2 border-purple-300/40 animate-pulse" style={{ animationDuration: '2s' }} />
+        </div>
+        
+        {/* Decorative element */}
+        <Sparkles className="absolute -top-1 -right-1 w-3 h-3 text-purple-300 animate-pulse" />
+      </div>
+    );
+  }
+  
+  // FREE tier - clean and simple
+  return (
+    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-500/20 text-gray-400 font-medium text-xs border border-gray-500/30">
+      <Sparkles className="w-3.5 h-3.5" />
+      <span>FREE PLAN</span>
+    </div>
+  );
+};
+
+// Avatar with tier-based decoration
+const ProfileAvatarFrame = ({ 
+  tier, 
+  avatarUrl, 
+  initials, 
+  onUploadClick, 
+  isUploading 
+}: { 
+  tier: string;
+  avatarUrl?: string;
+  initials: string;
+  onUploadClick: () => void;
+  isUploading: boolean;
+}) => {
+  const normalizedTier = tier?.toUpperCase() || "FREE";
+  
+  const getFrameStyles = () => {
+    if (normalizedTier === "PRO") {
+      return {
+        rotatingFrame: "absolute inset-0 rounded-full bg-gradient-to-br from-amber-400 via-yellow-300 to-amber-500 animate-spin-slow",
+        staticContainer: "relative w-28 h-28 rounded-full p-1.5",
+        inner: "bg-gradient-to-br from-amber-100 to-yellow-100",
+        decoration: (
+          <>
+            {/* Rotating outer ring */}
+            <div className="absolute -inset-2 rounded-full border-2 border-dashed border-amber-400/50 animate-spin" style={{ animationDuration: '10s' }} />
+            {/* Crown on top */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-30">
+              <div className="relative">
+                <Crown className="w-7 h-7 text-amber-400 fill-amber-400 drop-shadow-lg" />
+                <div className="absolute inset-0 animate-ping">
+                  <Crown className="w-7 h-7 text-amber-300 opacity-30" />
+                </div>
+              </div>
+            </div>
+            {/* Floating stars */}
+            <Star className="absolute -top-1 -right-3 w-4 h-4 text-yellow-400 fill-yellow-400 animate-pulse" />
+            <Star className="absolute -bottom-2 -left-3 w-3 h-3 text-yellow-400 fill-yellow-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+            <Star className="absolute top-1/2 -right-4 w-2.5 h-2.5 text-amber-400 fill-amber-400 animate-ping" style={{ animationDuration: '2s' }} />
+          </>
+        )
+      };
+    }
+    
+    if (normalizedTier === "PLUS") {
+      return {
+        rotatingFrame: null,
+        staticContainer: "relative w-28 h-28 rounded-full bg-gradient-to-br from-purple-500 via-indigo-500 to-purple-600 p-1",
+        inner: "bg-gradient-to-br from-purple-100 to-indigo-100",
+        decoration: (
+          <>
+            {/* Glowing ring */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 opacity-50 blur-md animate-pulse" />
+            {/* Lightning bolt */}
+            <div className="absolute -top-2 -right-1 z-30">
+              <Zap className="w-5 h-5 text-purple-400 fill-purple-400 drop-shadow-lg animate-pulse" />
+            </div>
+            {/* Sparkles */}
+            <Sparkles className="absolute -bottom-1 -left-2 w-4 h-4 text-indigo-400 animate-pulse" style={{ animationDelay: '0.3s' }} />
+          </>
+        )
+      };
+    }
+    
+    return {
+      rotatingFrame: null,
+      staticContainer: "relative w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-1",
+      inner: "",
+      decoration: null
+    };
+  };
+  
+  const styles = getFrameStyles();
+  
+  return (
+    <div className="relative group">
+      {styles.decoration}
+      
+      {/* Rotating gradient frame (only for PRO) */}
+      {styles.rotatingFrame && (
+        <div className={styles.rotatingFrame} style={{ animationDuration: '8s' }} />
+      )}
+      
+      {/* Main avatar container - static */}
+      <div className={styles.staticContainer}>
+        <div className={`w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden ${styles.inner}`}>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className={`text-3xl font-bold ${normalizedTier === "PRO" ? "text-amber-700" : normalizedTier === "PLUS" ? "text-purple-700" : "text-foreground"}`}>
+              {initials}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Upload overlay */}
+      <button
+        onClick={onUploadClick}
+        disabled={isUploading}
+        className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer z-20"
+      >
+        {isUploading ? (
+          <Loader2 className="w-6 h-6 text-white animate-spin" />
+        ) : (
+          <Camera className="w-6 h-6 text-white" />
+        )}
+      </button>
+    </div>
+  );
+};
+
+const ProfileHeader = ({ onAvatarUpdate }: ProfileHeaderProps) => {
   const { user, fetchUser } = useAuthStore();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tier = user?.subscription_tier?.toUpperCase() || "FREE";
 
   const getInitials = () => {
     if (user?.full_name) {
@@ -70,48 +246,60 @@ interface ProfileHeaderProps {
     });
   };
 
+  // Dynamic header background based on tier
+  const getHeaderBackground = () => {
+    if (tier === "PRO") {
+      return "bg-gradient-to-br from-amber-500/20 via-yellow-500/10 to-amber-500/20";
+    }
+    if (tier === "PLUS") {
+      return "bg-gradient-to-br from-purple-500/20 via-indigo-500/10 to-purple-500/20";
+    }
+    return "bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20";
+  };
+
+  const avatarUrl = user?.avatar_url 
+    ? (user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`)
+    : undefined;
+
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 border border-border">
+    <div className={`relative overflow-hidden rounded-2xl ${getHeaderBackground()} border border-border`}>
+      {/* Animated background effects for PRO */}
+      {tier === "PRO" && (
+        <>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-amber-400/30 to-transparent rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-yellow-400/30 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-radial from-amber-400/10 to-transparent rounded-full" />
+        </>
+      )}
+      
+      {/* Animated background effects for PLUS */}
+      {tier === "PLUS" && (
+        <>
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-purple-500/30 to-transparent rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-gradient-to-tr from-indigo-500/30 to-transparent rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        </>
+      )}
+      
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
 
       <div className="relative p-8">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Avatar */}
-          <div className="relative group">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-1">
-              <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                {user?.avatar_url ? (
-                  <img
-                    src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL}${user.avatar_url}`}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-foreground">{getInitials()}</span>
-                )}
-              </div>
-            </div>
+          {/* Avatar with tier-based frame */}
+          <ProfileAvatarFrame
+            tier={tier}
+            avatarUrl={avatarUrl}
+            initials={getInitials()}
+            onUploadClick={handleAvatarClick}
+            isUploading={isUploading}
+          />
 
-            <button
-              onClick={handleAvatarClick}
-              disabled={isUploading}
-              className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-            >
-              {isUploading ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
-              ) : (
-                <Camera className="w-6 h-6 text-white" />
-              )}
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={handleFileChange}
+            className="hidden"
+          />
 
           {/* User Info */}
           <div className="text-center sm:text-left flex-1">
@@ -124,17 +312,7 @@ interface ProfileHeaderProps {
                 {user?.role}
               </span>
 
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                  user?.subscription_tier === 'PRO'
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                    : user?.subscription_tier === 'PLUS'
-                      ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                      : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
-                }`}
-              >
-                {user?.subscription_tier} plan
-              </span>
+              <ProfilePlanBadge tier={tier} />
 
               <span className="text-xs text-muted-foreground">
                 Member since {user?.created_at ? formatDate(user.created_at) : 'N/A'}
