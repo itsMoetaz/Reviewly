@@ -160,6 +160,7 @@ def _make_github_delete_request(endpoint: str, token: str) -> None:
 
 
 def update_pr_comment(token: str, owner: str, repo: str, comment_id: int, new_body: str) -> Dict[str, Any]:
+    """Update a general PR/issue comment"""
     endpoint = f"/repos/{owner}/{repo}/issues/comments/{comment_id}"
     payload = {"body": new_body}
     response = _make_github_patch_request(endpoint, token, data=payload)
@@ -167,8 +168,24 @@ def update_pr_comment(token: str, owner: str, repo: str, comment_id: int, new_bo
     return {"updated_at": response["updated_at"]}
 
 
+def update_pr_review_comment(token: str, owner: str, repo: str, comment_id: int, new_body: str) -> Dict[str, Any]:
+    """Update an inline/review comment on a PR"""
+    endpoint = f"/repos/{owner}/{repo}/pulls/comments/{comment_id}"
+    payload = {"body": new_body}
+    response = _make_github_patch_request(endpoint, token, data=payload)
+
+    return {"updated_at": response["updated_at"]}
+
+
 def delete_pr_comment(token: str, owner: str, repo: str, comment_id: int) -> None:
+    """Delete a general PR/issue comment"""
     endpoint = f"/repos/{owner}/{repo}/issues/comments/{comment_id}"
+    _make_github_delete_request(endpoint, token)
+
+
+def delete_pr_review_comment(token: str, owner: str, repo: str, comment_id: int) -> None:
+    """Delete an inline/review comment on a PR"""
+    endpoint = f"/repos/{owner}/{repo}/pulls/comments/{comment_id}"
     _make_github_delete_request(endpoint, token)
 
 

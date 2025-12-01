@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException, status
@@ -10,6 +10,11 @@ from app.models.project_invitation import ProjectInvitation, ProjectInvitationRo
 from app.models.project_member import ProjectMember, ProjectMemberRole
 from app.models.user import User
 from app.services import project_service
+
+
+def get_utc_now() -> datetime:
+    """Get current UTC time as timezone-aware datetime"""
+    return datetime.now(timezone.utc)
 
 
 def get_user_role(db: Session, project_id: int, user_id: int) -> Optional[ProjectMemberRole]:
@@ -73,7 +78,7 @@ def invite_member(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invitation already sent")
 
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(days=7)
+    expires_at = get_utc_now() + timedelta(days=7)
 
     invitation = ProjectInvitation(
         project_id=project_id,
@@ -90,6 +95,7 @@ def invite_member(
 
     # Send invitation email
     try:
+        from app.config.settings import settings
         from app.shared.email_service import email_service
 
         inviter = db.query(User).filter(User.id == inviter_id).first()
@@ -100,6 +106,7 @@ def invite_member(
             project_name=project.name,
             role=role.value,
             token=token,
+            frontend_url=settings.FRONTEND_URL,
             expires_days=7,
         )
 
@@ -123,7 +130,7 @@ def accept_invitation(db: Session, token: str, user_id: int) -> ProjectMember:
     if invitation.status != ProjectInvitationStatus.PENDING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invitation already responded to")
 
-    if invitation.expires_at < datetime.utcnow():
+    if invitation.expires_at < get_utc_now():
         invitation.status = ProjectInvitationStatus.EXPIRED
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invitation expired")
@@ -150,7 +157,7 @@ def accept_invitation(db: Session, token: str, user_id: int) -> ProjectMember:
     db.add(member)
 
     invitation.status = ProjectInvitationStatus.ACCEPTED
-    invitation.responded_at = datetime.utcnow()
+    invitation.responded_at = get_utc_now()
 
     db.commit()
     db.refresh(member)
@@ -175,7 +182,7 @@ def decline_invitation(db: Session, token: str, user_id: int) -> bool:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invitation is for a different email address")
 
     invitation.status = ProjectInvitationStatus.DECLINED
-    invitation.responded_at = datetime.utcnow()
+    invitation.responded_at = get_utc_now()
 
     db.commit()
 
@@ -230,6 +237,42 @@ def get_project_invitations(db: Session, project_id: int, user_id: int) -> List[
     )
 
     return invitations
+
+
+def get_user_invitations(db: Session, email: str) -> List[dict]:
+    """Get all pending invitations for a user's email"""
+    from app.models.project import Project
+
+    invitations = (
+        db.query(ProjectInvitation)
+        .filter(
+            ProjectInvitation.email == email,
+            ProjectInvitation.status == ProjectInvitationStatus.PENDING,
+        )
+        .all()
+    )
+
+    result = []
+    for inv in invitations:
+        project = db.query(Project).filter(Project.id == inv.project_id).first()
+        inviter = db.query(User).filter(User.id == inv.invited_by).first()
+        result.append(
+            {
+                "id": inv.id,
+                "project_id": inv.project_id,
+                "email": inv.email,
+                "role": inv.role,
+                "status": inv.status,
+                "invited_by": inv.invited_by,
+                "expires_at": inv.expires_at,
+                "created_at": inv.created_at,
+                "token": inv.token,
+                "project_name": project.name if project else "Unknown Project",
+                "inviter_name": inviter.username if inviter else "Unknown",
+            }
+        )
+
+    return result
 
 
 def update_member_role(

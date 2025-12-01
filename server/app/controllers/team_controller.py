@@ -120,3 +120,13 @@ def decline_invitation(
     """Decline an invitation to join a project"""
     team_service.decline_invitation(db=db, token=token_data.token, user_id=current_user.id)
     return None
+
+
+@router.get("/invitations/my", response_model=List[ProjectInvitationResponse])
+def get_my_invitations(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get all pending invitations for the current user's email"""
+    invitations = team_service.get_user_invitations(db=db, email=current_user.email)
+    return invitations

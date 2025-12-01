@@ -1,16 +1,61 @@
-import { useState } from 'react';
-import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, LogOut, Settings, User, Check, X, Users, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
 import { ToggleTheme } from '../ui/toggle-theme';
+import { teamService } from '@/core/services/teamService';
+import type { ProjectInvitationResponse } from '@/core/interfaces/team.interface';
+import { useToast } from '@/components/hooks/use-toast';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export const AppNav = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { toast } = useToast();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [invitations, setInvitations] = useState<ProjectInvitationResponse[]>([]);
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const fetchInvitations = useCallback(async () => {
+    if (!user) return;
+    setIsLoadingInvitations(true);
+    const result = await teamService.getMyInvitations();
+    if (result.success && result.data) {
+      setInvitations(result.data);
+    }
+    setIsLoadingInvitations(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
+
+  const handleAcceptInvitation = async (token: string, id: number) => {
+    setProcessingId(id);
+    const result = await teamService.acceptInvitation(token);
+    if (result.success) {
+      toast({ title: "Invitation accepted! You've joined the project." });
+      fetchInvitations();
+    } else {
+      toast({ title: result.error || "Failed to accept invitation", variant: "destructive" });
+    }
+    setProcessingId(null);
+  };
+
+  const handleDeclineInvitation = async (token: string, id: number) => {
+    setProcessingId(id);
+    const result = await teamService.declineInvitation(token);
+    if (result.success) {
+      toast({ title: "Invitation declined" });
+      fetchInvitations();
+    } else {
+      toast({ title: result.error || "Failed to decline invitation", variant: "destructive" });
+    }
+    setProcessingId(null);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -54,11 +99,16 @@ export const AppNav = () => {
 
             <div className="relative">
               <button
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                onClick={() => {
+                  setNotificationsOpen(!notificationsOpen);
+                  if (!notificationsOpen) fetchInvitations();
+                }}
                 className="relative p-2 rounded-lg hover:bg-surface/50 transition-colors"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {invitations.length > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
               </button>
 
               {notificationsOpen && (
@@ -67,13 +117,68 @@ export const AppNav = () => {
                     className="fixed inset-0 z-40"
                     onClick={() => setNotificationsOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-80 bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
-                    <div className="p-4 border-b border-border">
+                  <div className="absolute right-0 mt-2 w-96 bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+                    <div className="p-4 border-b border-border flex items-center justify-between">
                       <h3 className="font-semibold text-foreground">Notifications</h3>
+                      {invitations.length > 0 && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {invitations.length} pending
+                        </span>
+                      )}
                     </div>
-                    <div className="p-8 text-center text-muted-foreground text-sm">
-                      No new notifications
-                    </div>
+                    
+                    {isLoadingInvitations ? (
+                      <div className="p-8 text-center">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                      </div>
+                    ) : invitations.length === 0 ? (
+                      <div className="p-8 text-center text-muted-foreground text-sm">
+                        No new notifications
+                      </div>
+                    ) : (
+                      <div className="max-h-96 overflow-y-auto">
+                        {invitations.map((inv) => (
+                          <div key={inv.id} className="p-4 border-b border-border last:border-b-0 hover:bg-muted/30">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                                <Users className="w-4 h-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground">
+                                  Team Invitation
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  <strong>{inv.inviter_name}</strong> invited you to join{' '}
+                                  <strong>{inv.project_name}</strong> as {inv.role}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <button
+                                    onClick={() => handleAcceptInvitation(inv.token!, inv.id)}
+                                    disabled={processingId === inv.id}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                                  >
+                                    {processingId === inv.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Check className="w-3 h-3" />
+                                    )}
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeclineInvitation(inv.token!, inv.id)}
+                                    disabled={processingId === inv.id}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-muted disabled:opacity-50"
+                                  >
+                                    <X className="w-3 h-3" />
+                                    Decline
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </>
               )}

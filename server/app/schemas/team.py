@@ -48,6 +48,10 @@ class ProjectInvitationResponse(BaseModel):
     expires_at: datetime
     created_at: datetime
     responded_at: Optional[datetime] = None
+    project_id: Optional[int] = None
+    token: Optional[str] = None
+    project_name: Optional[str] = None
+    inviter_name: Optional[str] = None
 
     class Config:
         from_attributes = True

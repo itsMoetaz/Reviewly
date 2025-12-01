@@ -10,7 +10,9 @@ import {
   Clock,
   MoreVertical,
   Trash2,
-  Loader2
+  Loader2,
+  X,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,18 +24,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { ProjectMemberResponse, ProjectMemberRole } from "@/core/interfaces/team.interface";
+import type { ProjectMemberResponse, ProjectMemberRole, ProjectInvitationResponse } from "@/core/interfaces/team.interface";
 import { ROLE_CONFIG } from "@/core/interfaces/team.interface";
 
 const API_URL = import.meta.env.VITE_API_URL;
 interface TeamTabProps {
   members: ProjectMemberResponse[];
+  pendingInvitations?: ProjectInvitationResponse[];
   isLoading: boolean;
+  isInvitationsLoading?: boolean;
   currentUserId: number;
   currentUserRole?: ProjectMemberRole;
   onInviteMember: () => void;
   onUpdateRole: (memberId: number, userId: number, newRole: ProjectMemberRole) => void;
   onRemoveMember: (memberId: number, userId: number) => void;
+  onCancelInvitation?: (invitationId: number) => void;
 }
 
 const getRoleIcon = (role: ProjectMemberRole) => {
@@ -197,14 +202,118 @@ const MemberCard = memo(({
 
 MemberCard.displayName = "MemberCard";
 
+// ==================== Pending Invitation Card ====================
+
+const PendingInvitationCard = memo(({
+  invitation,
+  onCancel,
+  canCancel,
+}: {
+  invitation: ProjectInvitationResponse;
+  onCancel: () => void;
+  canCancel: boolean;
+}) => {
+  const [isCancelling, setIsCancelling] = useState(false);
+  const normalizedRole = (invitation.role?.toString().toUpperCase() || 'REVIEWER') as ProjectMemberRole;
+  const roleConfig = ROLE_CONFIG[normalizedRole] || ROLE_CONFIG.REVIEWER;
+
+  const handleCancel = async () => {
+    setIsCancelling(true);
+    try {
+      await onCancel();
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const expiresAt = new Date(invitation.expires_at);
+  const now = new Date();
+  const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  return (
+    <div className="p-4 rounded-xl border border-dashed border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50 transition-colors">
+      <div className="flex items-start justify-between gap-4">
+        {/* Invitation Info */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-600">
+            <Send className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-medium truncate">{invitation.email}</span>
+              <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500/30">
+                Pending
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Invitation sent
+            </p>
+          </div>
+        </div>
+
+        {/* Role & Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge 
+            variant="secondary" 
+            className={`gap-1 ${roleConfig.bgColor} ${roleConfig.color}`}
+          >
+            {getRoleIcon(normalizedRole)}
+            {roleConfig.label}
+          </Badge>
+
+          {canCancel && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              onClick={handleCancel}
+              disabled={isCancelling}
+              title="Cancel invitation"
+            >
+              {isCancelling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Expiry Info */}
+      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-yellow-500/20 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" />
+          {daysRemaining > 0 
+            ? `Expires in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`
+            : 'Expires today'
+          }
+        </span>
+        {invitation.inviter_name && (
+          <span className="flex items-center gap-1">
+            Invited by {invitation.inviter_name}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
+
+PendingInvitationCard.displayName = "PendingInvitationCard";
+
+// ==================== Team Tab ====================
+
 export const TeamTab = memo(({
   members,
+  pendingInvitations = [],
   isLoading,
+  isInvitationsLoading = false,
   currentUserId,
   currentUserRole,
   onInviteMember,
   onUpdateRole,
   onRemoveMember,
+  onCancelInvitation,
 }: TeamTabProps) => {
   const canManageMembers = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
 
@@ -286,6 +395,38 @@ export const TeamTab = memo(({
               onRemove={() => onRemoveMember(member.id, member.user_id)}
             />
           ))}
+        </div>
+      )}
+
+      {/* Pending Invitations Section */}
+      {canManageMembers && (pendingInvitations.length > 0 || isInvitationsLoading) && (
+        <div className="space-y-3 mt-8">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-yellow-600" />
+            <h4 className="font-medium">Pending Invitations</h4>
+            <Badge variant="outline" className="text-yellow-600 border-yellow-500/30">
+              {pendingInvitations.length}
+            </Badge>
+          </div>
+          
+          {isInvitationsLoading ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {[...Array(2)].map((_, i) => (
+                <Skeleton key={i} className="h-24 rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {pendingInvitations.map((invitation) => (
+                <PendingInvitationCard
+                  key={invitation.id}
+                  invitation={invitation}
+                  onCancel={() => onCancelInvitation?.(invitation.id)}
+                  canCancel={canManageMembers}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

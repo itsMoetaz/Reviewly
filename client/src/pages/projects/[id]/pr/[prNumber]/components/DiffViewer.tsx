@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -12,14 +12,23 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/components/lib/utils";
 import { useDiffParser, getFileLanguage } from "../hooks/useDiffParser";
+import { CommentThread, InlineCommentIndicator } from "./CommentThread";
 import type { FileChange } from "@/core/interfaces/repository.interface";
 import type { ReviewIssue } from "@/core/interfaces/aiReview.interface";
+import type { CommentResponse, ReactionType } from "@/core/interfaces/comment.interface";
 
 interface DiffViewerProps {
   file: FileChange | null;
   issues?: ReviewIssue[];
-  onAddComment?: (lineNumber: number, filePath: string) => void;
+  onAddComment?: (lineNumber: number, filePath: string, lineContent?: string) => void;
   isLoading: boolean;
+  // Comment support
+  getCommentsForLine?: (filePath: string, lineNumber: number) => CommentResponse[];
+  getCommentCount?: (filePath: string, lineNumber: number) => number;
+  currentUserId?: number;
+  onEditComment?: (commentId: number, newText: string) => Promise<boolean>;
+  onDeleteComment?: (commentId: number) => Promise<boolean>;
+  onReaction?: (commentId: number, reactionType: ReactionType) => Promise<void>;
 }
 
 interface DiffLineProps {
@@ -30,11 +39,21 @@ interface DiffLineProps {
     newLineNumber?: number;
     lineIndex: number;
   };
+  filePath: string;
   issues?: ReviewIssue[];
-  onAddComment?: () => void;
+  onAddComment?: (lineContent: string) => void;
+  commentCount?: number;
+  onShowComments?: () => void;
 }
 
-const DiffLine = memo(({ line, issues = [], onAddComment }: DiffLineProps) => {
+const DiffLine = memo(({ 
+  line, 
+  filePath,
+  issues = [], 
+  onAddComment,
+  commentCount = 0,
+  onShowComments,
+}: DiffLineProps) => {
   const [isHovered, setIsHovered] = useState(false);
   
   const lineIssues = issues.filter(
@@ -46,6 +65,7 @@ const DiffLine = memo(({ line, issues = [], onAddComment }: DiffLineProps) => {
   );
 
   const hasIssues = lineIssues.length > 0;
+  const hasComments = commentCount > 0;
 
   const getLineClasses = () => {
     switch (line.type) {
@@ -75,7 +95,8 @@ const DiffLine = memo(({ line, issues = [], onAddComment }: DiffLineProps) => {
       className={cn(
         "group flex text-sm font-mono hover:bg-muted/50 transition-colors relative",
         getLineClasses(),
-        hasIssues && "ring-1 ring-inset ring-yellow-500/50"
+        hasIssues && "ring-1 ring-inset ring-yellow-500/50",
+        hasComments && "bg-blue-500/5"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -104,10 +125,17 @@ const DiffLine = memo(({ line, issues = [], onAddComment }: DiffLineProps) => {
         {line.content || " "}
       </pre>
 
+      {/* Comment indicator */}
+      {hasComments && (
+        <div className="absolute right-16 top-1/2 -translate-y-1/2">
+          <InlineCommentIndicator count={commentCount} onClick={onShowComments || (() => {})} />
+        </div>
+      )}
+
       {/* Add Comment Button */}
       {isHovered && onAddComment && (
         <button
-          onClick={onAddComment}
+          onClick={() => onAddComment(line.content)}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded bg-primary text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity"
           aria-label={`Add comment on line ${line.newLineNumber || line.oldLineNumber}`}
         >
@@ -117,7 +145,10 @@ const DiffLine = memo(({ line, issues = [], onAddComment }: DiffLineProps) => {
 
       {/* Issue Indicator */}
       {hasIssues && (
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <div className={cn(
+          "absolute top-1/2 -translate-y-1/2 flex items-center gap-1",
+          hasComments ? "right-28" : "right-8"
+        )}>
           {lineIssues.map((issue) => (
             <span
               key={issue.id}
@@ -144,10 +175,17 @@ export const DiffViewer = memo(({
   file, 
   issues = [],
   onAddComment,
-  isLoading 
+  isLoading,
+  getCommentsForLine,
+  getCommentCount,
+  currentUserId,
+  onEditComment,
+  onDeleteComment,
+  onReaction,
 }: DiffViewerProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [expandedCommentLines, setExpandedCommentLines] = useState<Set<number>>(new Set());
   
   const patch = file?.patch || file?.diff || "";
   const { hunks, additions, deletions } = useDiffParser(patch);
@@ -162,6 +200,18 @@ export const DiffViewer = memo(({
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const toggleCommentExpansion = useCallback((lineNumber: number) => {
+    setExpandedCommentLines(prev => {
+      const next = new Set(prev);
+      if (next.has(lineNumber)) {
+        next.delete(lineNumber);
+      } else {
+        next.add(lineNumber);
+      }
+      return next;
+    });
+  }, []);
 
   if (isLoading) {
     return (
@@ -251,18 +301,50 @@ export const DiffViewer = memo(({
           ) : (
             hunks.map((hunk, hunkIndex) => (
               <div key={hunkIndex} className={hunkIndex > 0 ? "border-t border-border" : ""}>
-                {hunk.lines.map((line) => (
-                  <DiffLine
-                    key={line.lineIndex}
-                    line={line}
-                    issues={fileIssues}
-                    onAddComment={
-                      onAddComment && line.newLineNumber
-                        ? () => onAddComment(line.newLineNumber!, file.filename)
-                        : undefined
-                    }
-                  />
-                ))}
+                {hunk.lines.map((line) => {
+                  const lineNumber = line.newLineNumber;
+                  const commentCount = lineNumber && getCommentCount 
+                    ? getCommentCount(file.filename, lineNumber) 
+                    : 0;
+                  const isExpanded = lineNumber ? expandedCommentLines.has(lineNumber) : false;
+                  const lineComments = lineNumber && getCommentsForLine && isExpanded
+                    ? getCommentsForLine(file.filename, lineNumber)
+                    : [];
+
+                  return (
+                    <div key={line.lineIndex}>
+                      <DiffLine
+                        line={line}
+                        filePath={file.filename}
+                        issues={fileIssues}
+                        commentCount={commentCount}
+                        onShowComments={
+                          lineNumber && commentCount > 0
+                            ? () => toggleCommentExpansion(lineNumber)
+                            : undefined
+                        }
+                        onAddComment={
+                          onAddComment && lineNumber
+                            ? (content) => onAddComment(lineNumber, file.filename, content)
+                            : undefined
+                        }
+                      />
+                      {/* Expanded comments */}
+                      {isExpanded && lineComments.length > 0 && (
+                        <div className="border-l-4 border-blue-500 bg-blue-500/5 p-3 ml-24">
+                          <CommentThread
+                            comments={lineComments}
+                            currentUserId={currentUserId || 0}
+                            onEdit={onEditComment}
+                            onDelete={onDeleteComment}
+                            onReaction={onReaction}
+                            isCompact
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ))
           )}
