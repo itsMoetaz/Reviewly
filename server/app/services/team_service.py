@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.logging_config import security_logger
 from app.models.project_invitation import ProjectInvitation, ProjectInvitationRole, ProjectInvitationStatus
@@ -196,11 +196,17 @@ def get_project_members(db: Session, project_id: int, user_id: int) -> List[dict
 
     require_permission(db, project_id, user_id, ProjectMemberRole.REVIEWER, "view team members")
 
-    members = db.query(ProjectMember).filter(ProjectMember.project_id == project_id).all()
+    # Use joinedload to avoid N+1 queries - fetch users in single query
+    members = (
+        db.query(ProjectMember)
+        .options(joinedload(ProjectMember.user))
+        .filter(ProjectMember.project_id == project_id)
+        .all()
+    )
 
     result = []
     for member in members:
-        user = db.query(User).filter(User.id == member.user_id).first()
+        user = member.user  # Already loaded via joinedload
         result.append(
             {
                 "id": member.id,
@@ -241,10 +247,10 @@ def get_project_invitations(db: Session, project_id: int, user_id: int) -> List[
 
 def get_user_invitations(db: Session, email: str) -> List[dict]:
     """Get all pending invitations for a user's email"""
-    from app.models.project import Project
-
+    # Use joinedload to avoid N+1 queries - fetch project and inviter in single query
     invitations = (
         db.query(ProjectInvitation)
+        .options(joinedload(ProjectInvitation.project), joinedload(ProjectInvitation.inviter))
         .filter(
             ProjectInvitation.email == email,
             ProjectInvitation.status == ProjectInvitationStatus.PENDING,
@@ -254,8 +260,8 @@ def get_user_invitations(db: Session, email: str) -> List[dict]:
 
     result = []
     for inv in invitations:
-        project = db.query(Project).filter(Project.id == inv.project_id).first()
-        inviter = db.query(User).filter(User.id == inv.invited_by).first()
+        project = inv.project  # Already loaded via joinedload
+        inviter = inv.inviter  # Already loaded via joinedload
         result.append(
             {
                 "id": inv.id,

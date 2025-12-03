@@ -56,7 +56,7 @@ app.state.limiter = limiter
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.FRONTEND_URL],  # Dynamic based on environment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
