@@ -4,6 +4,9 @@ import type { RouteObject } from "react-router-dom";
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
 const GoogleCallbackPage = lazy(() => import("@/pages/auth/GoogleCallbackPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const VerifyCodePage = lazy(() => import("@/pages/auth/VerifyCodePage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 
 const AuthLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -32,6 +35,30 @@ export const authRoutes: RouteObject[] = [
     element: (
       <Suspense fallback={<GoogleCallbackPage />}>
         <GoogleCallbackPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/forgot-password",
+    element: (
+      <Suspense fallback={<AuthLoader />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/verify-code",
+    element: (
+      <Suspense fallback={<AuthLoader />}>
+        <VerifyCodePage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+      <Suspense fallback={<AuthLoader />}>
+        <ResetPasswordPage />
       </Suspense>
     ),
   },

@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -24,9 +24,10 @@ class IssueSeverity(str, enum.Enum):
 
 class AIReview(Base):
     __tablename__ = "ai_reviews"
+    __table_args__ = (Index("ix_ai_reviews_project_pr", "project_id", "pr_number"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     pr_number = Column(Integer, nullable=False)
     status = Column(
         Enum(ReviewStatus, values_callable=lambda obj: [e.value for e in obj]),

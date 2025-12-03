@@ -110,6 +110,38 @@ class EmailService:
         return EmailService.send_email(to_email, subject, html_content)
 
     @staticmethod
+    def send_password_reset_code(
+        to_email: str,
+        username: str,
+        code: str,
+        expires_minutes: int = 15,
+    ) -> bool:
+        """Send password reset code email (6-digit code)"""
+        try:
+            template = jinja_env.get_template("password_reset.html")
+            html_content = template.render(username=username, code=code, expires_minutes=expires_minutes)
+        except Exception:
+            html_content = EmailService._get_fallback_password_reset_code_html(username, code, expires_minutes)
+
+        text_content = f"""
+Hi {username},
+
+We received a request to reset your password.
+
+Your reset code is: {code}
+
+This code will expire in {expires_minutes} minutes.
+
+If you didn't request a password reset, you can safely ignore this email.
+
+- The Reviewly Team
+        """
+
+        subject = "Reset Your Password - Reviewly"
+
+        return EmailService.send_email(to_email, subject, html_content, text_content)
+
+    @staticmethod
     def send_email_verification(
         to_email: str, username: str, verification_token: str, frontend_url: str = "http://localhost:3000"
     ) -> bool:
@@ -166,6 +198,20 @@ class EmailService:
             <p>Hi {username},</p>
             <p><a href="{frontend_url}/reset-password?token={reset_token}">Reset Password</a></p>
             <p style="color: red;">Expires in {expires_minutes} minutes</p>
+        </body>
+        </html>
+        """
+
+    @staticmethod
+    def _get_fallback_password_reset_code_html(username, code, expires_minutes):
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif;">
+            <h2>Reset Your Password</h2>
+            <p>Hi {username},</p>
+            <p>Your password reset code is:</p>
+            <h1 style="letter-spacing: 8px; color: #6366f1;">{code}</h1>
+            <p style="color: #f59e0b;">Expires in {expires_minutes} minutes</p>
         </body>
         </html>
         """

@@ -1,14 +1,56 @@
-import { Mail } from 'lucide-react';
+import { Mail, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import ElectroBorder from '../ui/electro-border';
 import { cn } from '../lib/utils';
+import { paymentApi } from '@/core/api/paymentApi';
+import { useAuthStore } from '@/store/authStore';
+import toast from 'react-hot-toast';
 
 const PricingSection = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuthStore();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+
+  const handleSubscribe = async (tier: string) => {
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    // If clicking on Free tier
+    if (tier === 'free') {
+      navigate('/home');
+      return;
+    }
+
+    // If user already has this tier
+    if (user?.subscription_tier?.toLowerCase() === tier.toLowerCase()) {
+      toast('You are already subscribed to this plan!', { icon: 'ℹ️' });
+      return;
+    }
+
+    setLoadingTier(tier);
+
+    try {
+      const checkoutUrl = await paymentApi.createCheckoutSession(tier as 'plus' | 'pro');
+      // Redirect to Stripe Checkout
+      window.location.href = checkoutUrl;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start checkout';
+      toast.error(errorMessage);
+      setLoadingTier(null);
+    }
+  };
+
   const plans = [
     {
       name: "Free",
+      tier: "free",
       price: "0",
-      currency: "DT",
+      currency: "$",
       description: "Perfect for hobbyists and side projects.",
       features: [
         "10 reviews / month",
@@ -24,8 +66,9 @@ const PricingSection = () => {
     },
     {
       name: "Plus",
-      price: "39",
-      currency: "DT",
+      tier: "plus",
+      price: "29",
+      currency: "$",
       description: "For growing teams shipping regularly.",
       features: [
         "100 reviews / month",
@@ -34,7 +77,7 @@ const PricingSection = () => {
         "Advanced analysis",
         "Custom rules"
       ],
-      cta: "Start free trial",
+      cta: "Subscribe to Plus",
       popular: true,
       color: "#6366f1", // Indigo 500
       hoverShadow: "hover:shadow-indigo-500/20",
@@ -42,8 +85,9 @@ const PricingSection = () => {
     },
     {
       name: "Pro",
-      price: "109",
-      currency: "DT",
+      tier: "pro",
+      price: "49",
+      currency: "$",
       description: "Unlimited power for scaling organizations.",
       features: [
         "Unlimited reviews",
@@ -52,7 +96,7 @@ const PricingSection = () => {
         "Custom security rules",
         "SSO & Audit logs"
       ],
-      cta: "Contact sales",
+      cta: "Subscribe to Pro",
       popular: false,
       color: "#fbbf24", // Gold (Amber 400)
       hoverShadow: "hover:shadow-amber-500/20",
@@ -120,8 +164,19 @@ const PricingSection = () => {
                       "w-auto px-8 min-w-[180px] h-12 text-base font-semibold transition-all duration-300 mx-auto rounded-xl",
                       plan.buttonClass
                     )}
+                    onClick={() => handleSubscribe(plan.tier)}
+                    disabled={loadingTier === plan.tier}
                   >
-                    {plan.cta}
+                    {loadingTier === plan.tier ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : user?.subscription_tier?.toLowerCase() === plan.tier ? (
+                      'Current Plan'
+                    ) : (
+                      plan.cta
+                    )}
                   </Button>
                 </div>
               </ElectroBorder>

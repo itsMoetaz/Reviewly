@@ -53,7 +53,12 @@ async def database_exception_handler(request: Request, exc: IntegrityError):
 
 
 async def general_exception_handler(request: Request, exc: Exception):
+    from app.config.settings import settings
+
+    # Only show detailed errors in development
+    error_detail = str(exc) if not settings.is_production else "An unexpected error occurred"
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"success": False, "message": "Internal server error", "error": str(exc)},
+        content={"success": False, "message": "Internal server error", "error": error_detail},
     )

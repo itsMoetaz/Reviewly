@@ -18,3 +18,6 @@ export { commentApi } from "./commentApi";
 
 // Team
 export { teamApi } from "./teamApi";
+
+// Payments
+export { paymentApi } from "./paymentApi";
