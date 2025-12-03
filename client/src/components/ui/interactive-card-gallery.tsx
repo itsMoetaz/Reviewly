@@ -27,7 +27,6 @@ const CardItem = ({
   imageSrc,
   buttonText,
   buttonLink,
-  imageAlt,
   accentColor = "yellow",
   onClick,
 }: CardProps) => {

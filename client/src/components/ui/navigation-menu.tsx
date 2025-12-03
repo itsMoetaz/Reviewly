@@ -214,7 +214,7 @@ interface NavigationMenuViewportProps
 const NavigationMenuViewport = React.forwardRef<
   HTMLDivElement,
   NavigationMenuViewportProps
->(({ className, ...props }, ref) => {
+>(({ className, ...props }) => {
   const viewportRef = React.useRef<HTMLDivElement>(null);
   const ctx = React.useContext(NavigationMenuContext);
 

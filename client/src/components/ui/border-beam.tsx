@@ -83,7 +83,6 @@ export const BorderBeam = ({
   style,
   reverse = false,
   initialOffset = 0,
-  borderThickness = 1,
   opacity = 1,
   glowIntensity = 0,
   beamBorderRadius,

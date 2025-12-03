@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { AnimatePresence, motion, Easing } from "framer-motion";
+import { AnimatePresence, motion, type Easing } from "framer-motion";
 
 function cn(...inputs: (string | undefined | null | boolean)[]) {
   return inputs.filter(Boolean).join(" ");
