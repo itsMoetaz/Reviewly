@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # ---------- Google OAuth Configuration ----------
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = "https://reviewly-s3w3.onrender.com/auth/google/callback"
 
     # ---------- Stripe Configuration ----------
     STRIPE_SECRET_KEY: str = ""
