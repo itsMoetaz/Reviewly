@@ -1,13 +1,13 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { cva } from "class-variance-authority";
-import { motion, AnimatePresence } from "framer-motion"; // Import motion and AnimatePresence
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DropdownMenuContextType {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   hoverMode?: boolean;
-  triggerRef: React.MutableRefObject<HTMLElement | null>; // Change to MutableRefObject
+  triggerRef: React.MutableRefObject<HTMLElement | null>;
 }
 
 const DropdownMenuContext = React.createContext<
@@ -82,18 +82,15 @@ const DropdownMenuTrigger = React.forwardRef<
     }
   };
 
-  // New ref for managing hover timeout specifically within the trigger
-  const triggerHoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // ✅ FIX 1: Utiliser number au lieu de NodeJS.Timeout
+  const triggerHoverTimeoutRef = React.useRef<number | null>(null);
 
   React.useImperativeHandle(ref, () => {
-    // Ensure triggerRef.current is not null before returning
-    // This should now correctly refer to the DOM element after the ref callback runs
     if (!triggerRef.current) {
-      // Fallback or throw an error if triggerRef.current is not set
       console.warn(
         "DropdownMenuTrigger ref is null. Ensure children forward their ref when asChild is true."
       );
-      return document.createElement("button"); // Return a dummy element to satisfy the type
+      return document.createElement("button");
     }
     return triggerRef.current as HTMLButtonElement;
   }, []);
@@ -103,7 +100,7 @@ const DropdownMenuTrigger = React.forwardRef<
       if (triggerHoverTimeoutRef.current) {
         clearTimeout(triggerHoverTimeoutRef.current);
       }
-      triggerHoverTimeoutRef.current = setTimeout(() => {
+      triggerHoverTimeoutRef.current = window.setTimeout(() => {
         setOpen(true);
       }, 100);
       if (triggerRef.current) {
@@ -139,13 +136,15 @@ const DropdownMenuTrigger = React.forwardRef<
       );
     }
 
-    return React.cloneElement(child, {
-      ...child.props,
+    // ✅ FIX 2: Typer correctement les props du child
+    const childProps = child.props as Record<string, any>;
+
+    return React.cloneElement(child as React.ReactElement<any>, {
+      // ✅ FIX 3: Spread correctement les props
+      ...(childProps || {}),
       ref: (node: HTMLElement | null) => {
-        // Update the internal triggerRef
         triggerRef.current = node;
 
-        // Handle the forwarded ref from forwardRef
         if (typeof ref === "function") {
           ref(node as HTMLButtonElement);
         } else if (ref) {
@@ -153,7 +152,6 @@ const DropdownMenuTrigger = React.forwardRef<
             node as HTMLButtonElement;
         }
 
-        // Handle the original ref of the child element
         const childRef = (child as any).ref;
         if (childRef) {
           if (typeof childRef === "function") {
@@ -166,15 +164,24 @@ const DropdownMenuTrigger = React.forwardRef<
       },
       onClick: (e: React.MouseEvent) => {
         handleClick(e as React.MouseEvent<HTMLButtonElement>);
-        if (child.props.onClick) child.props.onClick(e);
+        // ✅ FIX 4: Vérifier et typer correctement
+        if (childProps?.onClick) {
+          childProps.onClick(e);
+        }
       },
       onMouseEnter: (e: React.MouseEvent) => {
         handleMouseEnter(e as React.MouseEvent<HTMLElement>);
-        if (child.props.onMouseEnter) child.props.onMouseEnter(e);
+        // ✅ FIX 5: Vérifier et typer correctement
+        if (childProps?.onMouseEnter) {
+          childProps.onMouseEnter(e);
+        }
       },
       onMouseLeave: (e: React.MouseEvent) => {
         handleMouseLeaveTrigger(e as React.MouseEvent<HTMLElement>);
-        if (child.props.onMouseLeave) child.props.onMouseLeave(e);
+        // ✅ FIX 6: Vérifier et typer correctement
+        if (childProps?.onMouseLeave) {
+          childProps.onMouseLeave(e);
+        }
       },
     });
   }
@@ -221,10 +228,10 @@ const dropdownMenuContentVariants = cva(
 interface DropdownMenuContentProps
   extends Omit<
     React.HTMLAttributes<HTMLDivElement>,
-    | "onAnimationStart" // Omit this
-    | "onAnimationEnd" // Omit this
-    | "onTransitionEnd" // Omit this
-    | "onTransitionCancel" // Omit this
+    | "onAnimationStart"
+    | "onAnimationEnd"
+    | "onTransitionEnd"
+    | "onTransitionCancel"
     | "onDrag"
     | "onDragEnd"
     | "onDragEnter"
@@ -240,6 +247,7 @@ interface DropdownMenuContentProps
   sideOffset?: number;
   variant?: "default" | "contextMenu";
 }
+
 const DropdownMenuContent = React.forwardRef<
   HTMLDivElement,
   DropdownMenuContentProps
@@ -266,9 +274,8 @@ const DropdownMenuContent = React.forwardRef<
     const menuRef = React.useRef<HTMLDivElement | null>(null);
     const [position, setPosition] = React.useState({ top: 0, left: 0 });
 
-    const contentMouseLeaveTimeoutRef = React.useRef<NodeJS.Timeout | null>(
-      null
-    );
+    // ✅ FIX 7: Utiliser number au lieu de NodeJS.Timeout
+    const contentMouseLeaveTimeoutRef = React.useRef<number | null>(null);
 
     React.useEffect(() => {
       if (!open) return;
@@ -295,7 +302,7 @@ const DropdownMenuContent = React.forwardRef<
         if (contentMouseLeaveTimeoutRef.current) {
           clearTimeout(contentMouseLeaveTimeoutRef.current);
         }
-        contentMouseLeaveTimeoutRef.current = setTimeout(() => {
+        contentMouseLeaveTimeoutRef.current = window.setTimeout(() => {
           setOpen(false);
         }, 150);
       }
@@ -447,7 +454,6 @@ const DropdownMenuContent = React.forwardRef<
             className={cn(
               dropdownMenuContentVariants({ variant }),
               "dropdown-scrollbar",
-              // "scrollbar-hide",
               className
             )}
             style={{

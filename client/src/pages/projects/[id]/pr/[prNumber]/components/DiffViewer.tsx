@@ -48,7 +48,6 @@ interface DiffLineProps {
 
 const DiffLine = memo(({ 
   line, 
-  filePath,
   issues = [], 
   onAddComment,
   commentCount = 0,

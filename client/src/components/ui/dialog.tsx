@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { X } from "lucide-react";
-import { motion, AnimatePresence, HTMLMotionProps } from "framer-motion"; // Import motion, AnimatePresence, and HTMLMotionProps
+import { motion, AnimatePresence, type HTMLMotionProps } from "framer-motion"; // Import motion, AnimatePresence, and HTMLMotionProps
 
 interface DialogContextType {
  open: boolean;
@@ -79,14 +79,15 @@ const DialogTrigger = React.forwardRef<HTMLDivElement, DialogTriggerProps & Reac
    onClick={handleClick}
    {...otherProps}
   >
-   {React.Children.map(children, child => {
-   if (React.isValidElement(child)) {
- return React.cloneElement(child, {
-    ...child.props
- });
-   }
-   return child;
-   })}
+{React.Children.map(children, child => {
+ if (React.isValidElement(child)) {
+  const childProps = (child as React.ReactElement).props || {};
+  return React.cloneElement(child, {
+   ...(childProps as Record<string, unknown>)
+  });
+ }
+ return child;
+ })}
   </div>
   );
   }
