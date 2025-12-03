@@ -35,6 +35,8 @@ class User(Base):
     subscription_updated_at = Column(DateTime, nullable=True)
     avatar_url = Column(String, nullable=True)
     google_id = Column(String, unique=True, nullable=True, index=True)
+    stripe_customer_id = Column(String, unique=True, nullable=True, index=True)
+    stripe_subscription_id = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

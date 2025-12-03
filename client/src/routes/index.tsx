@@ -9,6 +9,8 @@ const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage"));
 const ProjectDetailsPage = lazy(() => import("@/pages/projects/[id]/ProjectDetailsPage"));
 const PullRequestDetailPage = lazy(() => import("@/pages/projects/[id]/pr/[prNumber]/PullRequestDetailPage"));
 const AcceptInvitationPage = lazy(() => import("@/pages/projects/AcceptInvitationPage"));
+const CheckoutSuccessPage = lazy(() => import("@/pages/subscription/CheckoutSuccessPage"));
+const CheckoutCancelPage = lazy(() => import("@/pages/subscription/CheckoutCancelPage"));
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -73,6 +75,26 @@ export const router = createBrowserRouter([
       <Suspense fallback={<PageLoader />}>
         <AcceptInvitationPage />
       </Suspense>
+    ),
+  },
+  {
+    path: "/checkout/success",
+    element: (
+      <ProtectedRoute>
+        <Suspense fallback={<PageLoader />}>
+          <CheckoutSuccessPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/checkout/cancel",
+    element: (
+      <ProtectedRoute>
+        <Suspense fallback={<PageLoader />}>
+          <CheckoutCancelPage />
+        </Suspense>
+      </ProtectedRoute>
     ),
   },
   ...authRoutes,

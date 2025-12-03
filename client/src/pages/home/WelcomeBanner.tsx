@@ -2,7 +2,7 @@ import type { User } from "../../core/interfaces/auth.interface";
 import { Skeleton } from "../../components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
-import { Plus, Sparkles, Crown, Zap, Star } from "lucide-react";
+import { Plus, Sparkles, Crown, Zap } from "lucide-react";
 import { CreateProjectDialog } from "../projects/components";
 
 interface WelcomeBannerProps {

@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
 
+    # ---------- Stripe Configuration ----------
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PLUS_PRICE_ID: str = ""
+    STRIPE_PRO_PRICE_ID: str = ""
+
     @property
     def allowed_avatar_types_list(self) -> list:
         return [t.strip() for t in self.ALLOWED_AVATAR_TYPES.split(",")]

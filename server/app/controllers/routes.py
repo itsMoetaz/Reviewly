@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.controllers import (
     ai_review_controller,
     auth_controller,
+    payment_controller,
     pr_comment_controller,
     project_controller,
     repository_controller,
@@ -21,3 +22,4 @@ def register_routes(app: FastAPI) -> None:
     app.include_router(pr_comment_controller.router)
     app.include_router(team_controller.router)
     app.include_router(subscription_controller.router)
+    app.include_router(payment_controller.router)

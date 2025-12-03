@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { lazy, Suspense } from "react";
-import { User, Shield, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { User, Shield, AlertTriangle, ArrowLeft, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 const ProfileHeader = lazy(() => import("./components/ProfileHeader"));
 const GeneralSection = lazy(() => import("./components/GeneralSection"));
 const SecuritySection = lazy(() => import("./components/SecuritySection"));
+const SubscriptionSection = lazy(() => import("./components/SubscriptionSection"));
 const DangerSection = lazy(() => import("./components/DangerSection"));
 
 const tabs = [
   { value: 'general', label: 'General', icon: User },
   { value: 'security', label: 'Security', icon: Shield },
+  { value: 'subscription', label: 'Subscription', icon: CreditCard },
   { value: 'danger', label: 'Danger Zone', icon: AlertTriangle },
 ];
 
@@ -84,6 +86,12 @@ const tabs = [
             <TabsContent value="security" className="mt-0">
               <Suspense fallback={<ProfileLoader />}>
                 <SecuritySection />
+              </Suspense>
+            </TabsContent>
+
+            <TabsContent value="subscription" className="mt-0">
+              <Suspense fallback={<ProfileLoader />}>
+                <SubscriptionSection />
               </Suspense>
             </TabsContent>
 
