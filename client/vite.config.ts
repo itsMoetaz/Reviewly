@@ -36,7 +36,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           
           // UI libraries
-          'ui-vendor': ['lucide-react', 'lightswind'],
+          'ui-vendor': ['lucide-react'],
           
           // State management & data fetching
           'state-vendor': ['zustand', '@tanstack/react-query'],
