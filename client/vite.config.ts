@@ -15,15 +15,8 @@ export default defineConfig({
     // Target modern browsers for smaller bundles
     target: 'esnext',
     
-    // Enable minification
-    minify: 'terser',
-    
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.logs in production
-        drop_debugger: true,
-      },
-    },
+    // Enable minification (esbuild is default and faster)
+    minify: 'esbuild',
     
     // Chunk size warnings
     chunkSizeWarningLimit: 1000,
