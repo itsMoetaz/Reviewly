@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # ---------- Environment Variables ----------
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "https://reviewly-sable.vercel.app/"
+    FRONTEND_URL: str = "https://reviewly-sable.vercel.app"
     BACKEND_URL: str = "https://reviewly-s3w3.onrender.com"
 
     # ---------- Email Configuration ----------

@@ -54,9 +54,22 @@ app = FastAPI(
 app.state.limiter = limiter
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Build allowed origins list
+allowed_origins = [settings.FRONTEND_URL.rstrip("/")]
+# Also allow localhost for development
+if not settings.is_production:
+    allowed_origins.extend(
+        [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+        ]
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],  # Dynamic based on environment
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,3 +90,14 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "service": "CodeReview API", "version": "1.0.0"}
+
+
+@app.get("/debug/cors")
+def debug_cors():
+    """Debug endpoint to verify CORS configuration"""
+    return {
+        "frontend_url": settings.FRONTEND_URL,
+        "allowed_origins": allowed_origins,
+        "environment": settings.ENVIRONMENT,
+        "is_production": settings.is_production,
+    }
