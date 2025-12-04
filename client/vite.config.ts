@@ -15,15 +15,8 @@ export default defineConfig({
     // Target modern browsers for smaller bundles
     target: 'esnext',
     
-    // Enable minification
-    minify: 'terser',
-    
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.logs in production
-        drop_debugger: true,
-      },
-    },
+    // Enable minification (esbuild is default and faster)
+    minify: 'esbuild',
     
     // Chunk size warnings
     chunkSizeWarningLimit: 1000,
@@ -36,7 +29,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           
           // UI libraries
-          'ui-vendor': ['lucide-react', 'lightswind'],
+          'ui-vendor': ['lucide-react'],
           
           // State management & data fetching
           'state-vendor': ['zustand', '@tanstack/react-query'],

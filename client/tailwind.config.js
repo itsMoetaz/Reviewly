@@ -35,8 +35,6 @@ export default {
     },
   },
   darkMode: 'class',
-  plugins: [
-    require('lightswind/plugin'),
-  ],
+  plugins: [],
 }
 
