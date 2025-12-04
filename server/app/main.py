@@ -92,12 +92,17 @@ def health_check():
     return {"status": "healthy", "service": "CodeReview API", "version": "1.0.0"}
 
 
-@app.get("/debug/cors")
-def debug_cors():
-    """Debug endpoint to verify CORS configuration"""
+@app.get("/debug/config")
+def debug_config():
+    """Debug endpoint to verify environment configuration (non-sensitive)"""
     return {
-        "frontend_url": settings.FRONTEND_URL,
-        "allowed_origins": allowed_origins,
         "environment": settings.ENVIRONMENT,
-        "is_production": settings.is_production,
+        "frontend_url": settings.FRONTEND_URL,
+        "backend_url": settings.BACKEND_URL,
+        "groq_keys_count": len(settings.groq_api_keys_list),
+        "groq_model": settings.GROQ_MODEL,
+        "stripe_configured": bool(settings.STRIPE_SECRET_KEY),
+        "google_oauth_configured": bool(settings.GOOGLE_CLIENT_ID),
+        "smtp_configured": bool(settings.SMTP_HOST),
+        "database_configured": bool(settings.DATABASE_URL),
     }
