@@ -196,8 +196,10 @@ Provide overall assessment:
 def get_ai_service() -> MultiKeyGroqService:
     api_keys = settings.groq_api_keys_list
     if not api_keys:
+        security_logger.error("GROQ_API_KEYS environment variable is not configured")
         raise ValueError(
-            "No Groq API keys configured. Please set GROQ_API_KEYS in .env file. "
+            "AI service not configured. Please set GROQ_API_KEYS environment variable. "
             "Get free API keys from https://console.groq.com"
         )
+    security_logger.info(f"AI service initialized with {len(api_keys)} API key(s)")
     return MultiKeyGroqService(api_keys=api_keys)
