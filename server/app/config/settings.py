@@ -29,8 +29,8 @@ class Settings(BaseSettings):
 
     # ---------- Environment Variables ----------
     ENVIRONMENT: str = "development"
-    FRONTEND_URL: str = "http://localhost:5173"
-    BACKEND_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "https://reviewly-sable.vercel.app/"
+    BACKEND_URL: str = "https://reviewly-s3w3.onrender.com"
 
     # ---------- Email Configuration ----------
     SMTP_HOST: str
