@@ -57,7 +57,7 @@ class EmailService:
         project_name: str,
         role: str,
         token: str,
-        frontend_url: str = "http://localhost:5173",
+        frontend_url: str = "https://reviewly-sable.vercel.app",
         expires_days: int = 7,
     ) -> bool:
         """Send team invitation email"""
@@ -90,7 +90,7 @@ class EmailService:
         to_email: str,
         username: str,
         reset_token: str,
-        frontend_url: str = "http://localhost:3000",
+        frontend_url: str = "https://reviewly-sable.vercel.app",
         expires_minutes: int = 30,
     ) -> bool:
         """Send password reset email"""
