@@ -131,7 +131,7 @@ export const LoginForm = () => {
 
       {/* Social Login */}
       <a
-        href={import.meta.env.GOOGLE_CALLBACK_URL || "http://localhost:8000/auth/google/login"}
+        href={import.meta.env.GOOGLE_CALLBACK_URL || "https://reviewly-s3w3.onrender.com/auth/google/login"}
         className="flex items-center justify-center gap-3 w-full h-12 px-4 rounded-lg bg-white hover:bg-gray-50 border border-gray-300 transition-all duration-200 shadow-sm hover:shadow"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
