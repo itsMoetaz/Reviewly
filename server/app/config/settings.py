@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     MAX_AVATAR_SIZE: int = 2 * 1024 * 1024
     ALLOWED_AVATAR_TYPES: str = "image/jpeg,image/png,image/gif,image/webp"
 
+    # ---------- Cloudinary Configuration ----------
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+
     # ---------- Google OAuth Configuration ----------
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
