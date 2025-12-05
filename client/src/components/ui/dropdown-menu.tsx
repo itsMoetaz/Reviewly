@@ -211,7 +211,7 @@ DropdownMenuTrigger.displayName = "DropdownMenuTrigger";
 
 const dropdownMenuContentVariants = cva(
   `z-50 min-w-[8rem] overflow-hidden rounded-md border  
-   bg-popover p-1 text-popover-foreground shadow-md`,
+   bg-white dark:bg-slate-800 p-1 text-slate-900 dark:text-slate-100 shadow-md`,
   {
     variants: {
       variant: {

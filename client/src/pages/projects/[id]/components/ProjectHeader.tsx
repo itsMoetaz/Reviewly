@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Github, Gitlab, ExternalLink, ArrowLeft, RefreshCw, Settings } from "lucide-react";
+import { Github, Gitlab, ExternalLink, ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,14 +145,6 @@ export const ProjectHeader = memo(({
                 <ExternalLink className="h-4 w-4" />
                 View Repo
               </a>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(`/projects/${project.id}/settings`)}
-            >
-              <Settings className="h-4 w-4" />
             </Button>
           </div>
         </div>
