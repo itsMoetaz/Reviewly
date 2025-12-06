@@ -1,5 +1,5 @@
 import { Button } from '../ui/button';
-import { ArrowRight, Github, Twitter, Linkedin } from 'lucide-react';
+import { ArrowRight, Github, Linkedin } from 'lucide-react';
 
 import BeamGridBackground from '../ui/beam-grid-background';
 
@@ -54,9 +54,8 @@ export const Footer = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors"><Github size={18} /></a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors"><Twitter size={18} /></a>
-            <a href="#" className="text-muted-foreground hover:text-foreground transition-colors"><Linkedin size={18} /></a>
+            <a href="https://github.com/itsMoetaz" className="text-muted-foreground hover:text-foreground transition-colors"><Github size={18} /></a>
+            <a href="https://www.linkedin.com/in/benkhedhermoetaz" className="text-muted-foreground hover:text-foreground transition-colors"><Linkedin size={18} /></a>
           </div>
         </div>
       </div>

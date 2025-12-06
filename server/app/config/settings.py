@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str
     SMTP_FROM_NAME: str
 
+    # ---------- Brevo (Email API) Configuration ----------
+    BREVO_API_KEY: str = ""
+
     # ---------- Upload Configuration ----------
     UPLOAD_DIR: str = "uploads"
     MAX_AVATAR_SIZE: int = 2 * 1024 * 1024
