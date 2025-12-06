@@ -5,7 +5,7 @@ import { router } from './routes';
 import { useAuthStore } from './store/authStore';
 import './index.css';
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
