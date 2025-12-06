@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { authService } from "@/core/services/authService";
 import type { User, AuthState } from "@/core/interfaces/auth.interface";
+import { queryClient } from "@/App";
 
 interface AuthStore extends AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -64,6 +65,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           await authService.logout();
         } finally {
+          queryClient.clear();
           set({
             user: null,
             accessToken: null,
