@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional
 
+import requests
 from jinja2 import Environment, FileSystemLoader
 
 from app.config.settings import settings
@@ -20,10 +21,66 @@ class EmailService:
 
     @staticmethod
     def send_email(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
+        """
+        Send email using Brevo API (production) or SMTP (development fallback).
+        """
+        # Try Brevo API first (for production/Render deployment)
+        if settings.BREVO_API_KEY:
+            return EmailService._send_via_brevo(to_email, subject, html_content, text_content)
 
+        # Fall back to SMTP (for local development)
+        return EmailService._send_via_smtp(to_email, subject, html_content, text_content)
+
+    @staticmethod
+    def _send_via_brevo(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
+        """Send email using Brevo HTTP API"""
         try:
+            security_logger.info(f"Sending email to {to_email} via Brevo API")
+
+            url = "https://api.brevo.com/v3/smtp/email"
+            headers = {
+                "accept": "application/json",
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+            }
+            payload = {
+                "sender": {"name": settings.SMTP_FROM_NAME, "email": settings.SMTP_FROM_EMAIL},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": html_content,
+            }
+            if text_content:
+                payload["textContent"] = text_content
+
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+            if response.status_code == 201:
+                security_logger.info(f"Email sent successfully to {to_email} via Brevo")
+                return True
+            else:
+                security_logger.error(f"Brevo API error for {to_email}: {response.status_code} - {response.text}")
+                return False
+
+        except requests.exceptions.Timeout:
+            security_logger.error(f"Brevo API timeout for {to_email}")
+            return False
+        except requests.exceptions.RequestException as e:
+            security_logger.error(f"Brevo API request error for {to_email}: {str(e)}")
+            return False
+        except Exception as e:
+            security_logger.error(f"Failed to send email via Brevo to {to_email}: {type(e).__name__}: {str(e)}")
+            return False
+
+    @staticmethod
+    def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: Optional[str] = None) -> bool:
+        """Send email using SMTP (fallback for local development)"""
+        try:
+            security_logger.info(f"Sending email to {to_email} via SMTP {settings.SMTP_HOST}:{settings.SMTP_PORT}")
+
             msg = MIMEMultipart("alternative")
-            msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
+            # Use SMTP_USER as From email when using Gmail to avoid authentication errors
+            from_email = settings.SMTP_USER if "gmail.com" in settings.SMTP_HOST else settings.SMTP_FROM_EMAIL
+            msg["From"] = f"{settings.SMTP_FROM_NAME} <{from_email}>"
             msg["To"] = to_email
             msg["Subject"] = subject
 
@@ -37,17 +94,28 @@ class EmailService:
             msg.attach(part2)
 
             # Send email
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=30) as server:
+                security_logger.info("Connected to SMTP server, starting TLS...")
                 server.starttls()
-                if settings.SMTP_USER and settings.SMTP_PASSWORD:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
 
-            security_logger.info(f"Email sent successfully to {to_email}")
+                if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                    security_logger.info(f"Authenticating as {settings.SMTP_USER}...")
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                    security_logger.info("SMTP authentication successful")
+
+                server.send_message(msg)
+                security_logger.info(f"Email sent successfully to {to_email} via SMTP")
+
             return True
 
+        except smtplib.SMTPAuthenticationError as e:
+            security_logger.error(f"SMTP Authentication failed for {to_email}: {str(e)}")
+            return False
+        except smtplib.SMTPException as e:
+            security_logger.error(f"SMTP error sending email to {to_email}: {str(e)}")
+            return False
         except Exception as e:
-            security_logger.error(f"Failed to send email to {to_email}: {str(e)}")
+            security_logger.error(f"Failed to send email via SMTP to {to_email}: {type(e).__name__}: {str(e)}")
             return False
 
     @staticmethod
